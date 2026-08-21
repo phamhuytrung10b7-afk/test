@@ -767,11 +767,11 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
   return (
     <div 
       ref={containerRef}
-      className={`relative w-full ${isCompact ? 'h-[460px]' : isFullscreen ? 'fixed inset-0 z-50 h-screen w-screen' : 'h-[620px]'} ${
+      className={`${isFullscreen ? 'fixed inset-0 z-[99999] w-screen h-screen rounded-none' : `relative w-full ${isCompact ? 'h-[460px]' : 'h-[620px]'} rounded-2xl`} ${
         isStudioPhotoMode 
           ? screenshotBg === 'clean-white' ? 'bg-white border-slate-300' : screenshotBg === 'studio-slate' ? 'bg-slate-100 border-slate-300' : 'bg-slate-950 border-slate-800'
           : 'bg-slate-900 border-slate-800'
-      } rounded-2xl overflow-hidden border shadow-2xl flex flex-col select-none transition-colors duration-200`}
+      } overflow-hidden border shadow-2xl flex flex-col select-none transition-colors duration-200`}
     >
       
       {/* STUDIO PHOTO CONTROL BAR (Visible only in Studio Mode) */}

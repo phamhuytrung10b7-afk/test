@@ -3,6 +3,7 @@ import { BoardConfig, InventoryItem, SafetyRule, WarehousePosition, WarehouseRac
 import { X, Printer, Download, Layers, FileText, Compass, Box, Sparkles, RefreshCw, Upload, Trash2, Edit3, Save, Plus, RotateCcw, Image as ImageIcon, Check, ExternalLink } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { IsometricRackSVG } from './IsometricRackSVG';
 
 interface CustomTableItem {
   id: string;
@@ -52,6 +53,7 @@ interface PdfCustomData {
     tier2Label: string;
     tier1Label: string;
     floorNotice: string;
+    matrixSlots: Record<string, { code: string; name: string; qty: string }>;
   };
 }
 
@@ -67,6 +69,7 @@ interface PrintExportModalProps {
   safetyRules: SafetyRule[];
   initialPdfTab?: 'pdf1' | 'pdf2' | 'pdf3' | 'pdf4';
   selectedRackId?: string | null;
+  pdf4Config?: any;
 }
 
 export const PrintExportModal: React.FC<PrintExportModalProps> = ({
@@ -79,6 +82,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   safetyRules,
   initialPdfTab = 'pdf1',
   selectedRackId = 'C',
+  pdf4Config,
 }) => {
   const [activePdfTab, setActivePdfTab] = useState<'pdf1' | 'pdf2' | 'pdf3' | 'pdf4'>(initialPdfTab);
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
@@ -96,17 +100,35 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
     [1, 2, 3, 4, 5].forEach((bNum) => {
       const bayStr = bNum.toString().padStart(2, '0');
       [1, 2, 3].forEach((tNum) => {
-        const key = `${bayStr}-${tNum}`;
-        const matchItem = items.find(i => i.rackId === activeRackId && i.bayId === bayStr && i.tier === tNum);
-        if (matchItem) {
-          initialMatrixSlots[key] = {
-            code: matchItem.code || '',
-            name: matchItem.name || '',
-            qty: `${matchItem.quantity || ''} ${matchItem.unit || 'cái'}`,
+        [1, 2].forEach(pos => {
+          const key = `${bayStr}-${tNum}-${pos}`;
+          const matchItem = items.find(i => i.rackId === activeRackId && i.bayId === bayStr && i.tier === tNum && (i.slot === pos || (!i.slot && pos === 1)));
+          if (matchItem) {
+            initialMatrixSlots[key] = {
+              code: matchItem.code || '',
+              name: matchItem.name || '',
+              qty: `${matchItem.quantity || ''} ${matchItem.unit || 'cái'}`,
+            };
+          } else {
+            initialMatrixSlots[key] = { code: '', name: '', qty: '' };
+          }
+        });
+      });
+    });
+
+    const initialPdf4Slots: Record<string, { code: string; name: string; qty: string }> = {};
+    [1, 2, 3, 4, 5].forEach((bNum) => {
+      const bayStr = bNum.toString().padStart(2, '0');
+      [1, 2, 3].forEach((tNum) => {
+        [1, 2].forEach(pos => {
+          const key = `${bayStr}-${tNum}-${pos}`;
+          const matchItem = items.find(i => i.rackId === activeRackId && i.bayId === bayStr && i.tier === tNum && (i.slot === pos || (!i.slot && pos === 1)));
+          initialPdf4Slots[key] = {
+            code: matchItem?.code || `${activeRackId}-${bayStr}-${tNum}-${pos}`,
+            name: matchItem?.name || `Vị trí ${pos}`,
+            qty: matchItem?.quantity ? `${matchItem.quantity} ${matchItem.unit || 'cái'}` : '',
           };
-        } else {
-          initialMatrixSlots[key] = { code: '', name: '', qty: '' };
-        }
+        });
       });
     });
 
@@ -135,7 +157,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
       },
       pdf2: {
         title: `CHI TIẾT RACK: KỆ ${activeRackId} (DÃY ${activeRackId})`,
-        subtitle: 'MA TRẬN PHÂN BỔ KHOANG & TẦNG (5 KHOANG x 3 TẦNG = 15 VỊ TRÍ Ô KỆ)',
+        subtitle: 'MA TRẬN PHÂN BỔ KHOANG & TẦNG (5 KHOANG x 3 TẦNG x 2 VỊ TRÍ = 30 Ô KỆ)',
         rackId: activeRackId,
         companyLogoText: boardConfig.companyLogoText || 'SUNHOUSE',
         bayNames: ['KHOANG 01', 'KHOANG 02', 'KHOANG 03', 'KHOANG 04', 'KHOANG 05'],
@@ -155,7 +177,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
       },
       pdf4: {
         title: `MÔ PHỎNG PHỐI CẢNH 3D KỆ ${activeRackId} — CAD ISOMETRIC`,
-        subtitle: 'SƠ ĐỒ PHỐI CẢNH 3D CHI TIẾT KỆ HÀNG (5 KHOANG x 3 TẦNG = 15 VỊ TRÍ)',
+        subtitle: 'SƠ ĐỒ PHỐI CẢNH 3D CHI TIẾT KỆ HÀNG (5 KHOANG x 3 TẦNG x 2 VỊ TRÍ = 30 VỊ TRÍ)',
         rackId: activeRackId,
         companyLogoText: boardConfig.companyLogoText || 'SUNHOUSE',
         customImage: null,
@@ -164,6 +186,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
         tier2Label: 'TẦNG 2 (Mức B - Giữa)',
         tier1Label: 'TẦNG 1 (MẶT ĐẤT)',
         floorNotice: `⚠️ MẶT ĐẤT (TẦNG 1) — VẠCH SƠN AN TOÀN 5S KHO BÌNH DƯƠNG (KỆ ${activeRackId})`,
+        matrixSlots: initialPdf4Slots,
       },
     };
   };
@@ -174,7 +197,21 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        return { ...getDefaultPdfData(), ...parsed };
+        const defaults = getDefaultPdfData();
+        return {
+          ...defaults,
+          ...parsed,
+          pdf2: {
+            ...defaults.pdf2,
+            ...(parsed.pdf2 || {}),
+            matrixSlots: { ...defaults.pdf2.matrixSlots, ...(parsed.pdf2?.matrixSlots || {}) },
+          },
+          pdf4: {
+            ...defaults.pdf4,
+            ...(parsed.pdf4 || {}),
+            matrixSlots: { ...defaults.pdf4.matrixSlots, ...(parsed.pdf4?.matrixSlots || {}) },
+          },
+        };
       }
     } catch (e) {
       console.error('Failed to parse saved PDF custom data:', e);
@@ -1044,76 +1081,84 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
 
                         {/* 3 Tiers (Tier 3 top, Tier 2 mid, Tier 1 ground) */}
                         {[3, 2, 1].map((tierNum) => {
-                          const slotKey = `${bayNum}-${tierNum}`;
-                          const slotData = pdfData.pdf2.matrixSlots[slotKey] || { code: '', name: '', qty: '' };
-                          const slotCodeDisplay = `${pdfData.pdf2.rackId}-${bayNum}-${tierNum}`;
-
                           const tierBg = tierNum === 3 ? 'bg-amber-50 border-amber-300 text-amber-900' : tierNum === 2 ? 'bg-blue-50 border-blue-300 text-blue-900' : 'bg-red-50 border-red-300 text-red-900';
                           const tagBg = tierNum === 3 ? 'bg-amber-500' : tierNum === 2 ? 'bg-blue-600' : 'bg-red-600';
 
                           return (
-                            <div 
-                              key={`pdf2-cell-${bayNum}-${tierNum}`} 
-                              className={`p-2.5 rounded-xl border-2 ${tierBg} flex flex-col gap-1 min-h-[95px] shadow-xs relative`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className={`text-[10px] font-black text-white px-2 py-0.5 rounded font-mono ${tagBg}`}>
-                                  {slotCodeDisplay}
-                                </span>
-                                <span className="text-[9px] font-extrabold opacity-60">Tầng {tierNum}</span>
-                              </div>
+                            <div key={`pdf2-tier-wrapper-${bayNum}-${tierNum}`} className="flex gap-1.5 w-full">
+                              {[1, 2].map(pos => {
+                                const slotKey = `${bayNum}-${tierNum}-${pos}`;
+                                const slotData = pdfData.pdf2.matrixSlots[slotKey] || { code: '', name: '', qty: '' };
+                                const slotCodeDisplay = `${pdfData.pdf2.rackId}-${bayNum}-${tierNum}-${pos}`;
 
-                              {isEditMode ? (
-                                <div className="mt-1 flex flex-col gap-1">
-                                  <input
-                                    type="text"
-                                    placeholder="Tên vật tư..."
-                                    value={slotData.name}
-                                    onChange={(e) => {
-                                      const newSlots = { ...pdfData.pdf2.matrixSlots };
-                                      newSlots[slotKey] = { ...slotData, name: e.target.value };
-                                      setPdfData({ ...pdfData, pdf2: { ...pdfData.pdf2, matrixSlots: newSlots } });
-                                    }}
-                                    className="text-xs font-bold bg-white/80 border border-slate-300 rounded px-1 text-slate-900 w-full"
-                                  />
-                                  <div className="flex gap-1">
-                                    <input
-                                      type="text"
-                                      placeholder="Mã..."
-                                      value={slotData.code}
-                                      onChange={(e) => {
-                                        const newSlots = { ...pdfData.pdf2.matrixSlots };
-                                        newSlots[slotKey] = { ...slotData, code: e.target.value };
-                                        setPdfData({ ...pdfData, pdf2: { ...pdfData.pdf2, matrixSlots: newSlots } });
-                                      }}
-                                      className="text-[10px] font-mono bg-white/80 border border-slate-300 rounded px-1 w-1/2"
-                                    />
-                                    <input
-                                      type="text"
-                                      placeholder="SL..."
-                                      value={slotData.qty}
-                                      onChange={(e) => {
-                                        const newSlots = { ...pdfData.pdf2.matrixSlots };
-                                        newSlots[slotKey] = { ...slotData, qty: e.target.value };
-                                        setPdfData({ ...pdfData, pdf2: { ...pdfData.pdf2, matrixSlots: newSlots } });
-                                      }}
-                                      className="text-[10px] bg-white/80 border border-slate-300 rounded px-1 w-1/2"
-                                    />
+                                return (
+                                  <div 
+                                    key={`pdf2-cell-${bayNum}-${tierNum}-${pos}`} 
+                                    className={`p-1.5 sm:p-2 rounded-xl border-2 ${tierBg} flex flex-col gap-1 w-1/2 min-h-[95px] shadow-xs relative`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span className={`text-[9px] font-black text-white px-1 py-0.5 rounded font-mono flex items-center justify-center leading-none ${tagBg}`}>
+                                        {slotCodeDisplay}
+                                      </span>
+                                      <span className="text-[7.5px] font-extrabold opacity-60">T{tierNum}-{pos}</span>
+                                    </div>
+
+                                    {isEditMode ? (
+                                      <div className="mt-1 flex flex-col gap-1">
+                                        <input
+                                          type="text"
+                                          placeholder="Tên vật tư..."
+                                          value={slotData.name}
+                                          onChange={(e) => {
+                                            const newSlots = { ...pdfData.pdf2.matrixSlots };
+                                            newSlots[slotKey] = { ...slotData, name: e.target.value };
+                                            setPdfData({ ...pdfData, pdf2: { ...pdfData.pdf2, matrixSlots: newSlots } });
+                                          }}
+                                          className="text-[10px] font-bold bg-white/80 border border-slate-300 rounded px-1 text-slate-900 w-full"
+                                        />
+                                        <div className="flex flex-col gap-1">
+                                          <input
+                                            type="text"
+                                            placeholder="Mã..."
+                                            value={slotData.code}
+                                            onChange={(e) => {
+                                              const newSlots = { ...pdfData.pdf2.matrixSlots };
+                                              newSlots[slotKey] = { ...slotData, code: e.target.value };
+                                              setPdfData({ ...pdfData, pdf2: { ...pdfData.pdf2, matrixSlots: newSlots } });
+                                            }}
+                                            className="text-[9px] font-mono bg-white/80 border border-slate-300 rounded px-1 w-full"
+                                          />
+                                          <input
+                                            type="text"
+                                            placeholder="SL..."
+                                            value={slotData.qty}
+                                            onChange={(e) => {
+                                              const newSlots = { ...pdfData.pdf2.matrixSlots };
+                                              newSlots[slotKey] = { ...slotData, qty: e.target.value };
+                                              setPdfData({ ...pdfData, pdf2: { ...pdfData.pdf2, matrixSlots: newSlots } });
+                                            }}
+                                            className="text-[9px] bg-white/80 border border-slate-300 rounded px-1 w-full"
+                                          />
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      slotData.name || slotData.code ? (
+                                        <div className="mt-1 flex flex-col">
+                                          <span className="font-bold text-[10px] leading-normal text-slate-900 block break-words pb-0.5" title={slotData.name || 'Linh kiện'}>
+                                            {slotData.name || 'Linh kiện'}
+                                          </span>
+                                          <span className="font-mono text-[8.5px] font-extrabold text-cyan-800">{slotData.code || 'N/A'}</span>
+                                          <span className="text-[8px] text-slate-600 font-semibold">SL: {slotData.qty || '0'}</span>
+                                        </div>
+                                      ) : (
+                                        <div className="mt-2 text-slate-400 font-bold text-[9px] italic border border-dashed border-slate-300 rounded p-1 text-center">
+                                          + Ô trống
+                                        </div>
+                                      )
+                                    )}
                                   </div>
-                                </div>
-                              ) : (
-                                slotData.name || slotData.code ? (
-                                  <div className="mt-1 flex flex-col">
-                                    <span className="font-bold text-xs text-slate-900 line-clamp-1">{slotData.name || 'Linh kiện'}</span>
-                                    <span className="font-mono text-[10px] font-extrabold text-cyan-800">{slotData.code || 'N/A'}</span>
-                                    <span className="text-[9px] text-slate-600 font-semibold">SL: {slotData.qty || '0'}</span>
-                                  </div>
-                                ) : (
-                                  <div className="mt-2 text-slate-400 font-bold text-[10px] italic border border-dashed border-slate-300 rounded p-1 text-center">
-                                    + Ô trống
-                                  </div>
-                                )
-                              )}
+                                );
+                              })}
                             </div>
                           );
                         })}
@@ -1123,7 +1168,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                 </div>
 
                 <div className="text-right text-xs font-bold text-slate-500 pt-1 border-t border-slate-200">
-                  Tổng quy mô Kệ {pdfData.pdf2.rackId}: 5 khoang × 3 tầng = 15 vị trí ô chứa hàng • Đã lưu tự động
+                  Tổng quy mô Kệ {pdfData.pdf2.rackId}: 5 khoang × 3 tầng × 2 vị trí = 30 vị trí ô chứa hàng • Đã lưu tự động
                 </div>
               </div>
 
@@ -1632,89 +1677,36 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                     className="w-full h-auto max-h-[420px] object-contain rounded-lg"
                   />
                 ) : (
-                  <svg viewBox="0 0 1050 500" className="w-full h-auto max-h-[420px]">
-                    {/* Floor 5S Zone */}
-                    <polygon points="30,440 990,440 960,480 0,480" fill="#fef08a" stroke="#ca8a04" strokeWidth="2" strokeDasharray="10 5" />
-                    <text x="490" y="462" fill="#854d0e" fontSize="11" fontWeight="900" letterSpacing="2" textAnchor="middle">
-                      {pdfData.pdf4.floorNotice}
-                    </text>
-
-                    {/* Floor Bay Markers 01..05 */}
-                    {[1, 2, 3, 4, 5].map((bayNum, idx) => {
-                      const bayCenterX = 172 + idx * 175;
-                      return (
-                        <g key={`pdf4-floor-bay-${bayNum}`} transform={`translate(${bayCenterX - 22}, 468)`}>
-                          <rect x="0" y="0" width="44" height="18" rx="5" fill="#0f172a" stroke="#38bdf8" strokeWidth="1.2" />
-                          <text x="22" y="13" fill="#ffffff" fontSize="10" fontWeight="900" textAnchor="middle" fontFamily="monospace">
-                            0{bayNum}
-                          </text>
-                        </g>
-                      );
-                    })}
-
-                    {/* Top Bay Headers */}
-                    {pdfData.pdf4.bayNames.map((bayTitle, idx) => {
-                      const bayX = 85 + idx * 175;
-                      return (
-                        <g key={`pdf4-top-bay-${idx}`} transform={`translate(${bayX}, 10)`}>
-                          <rect x="0" y="0" width="155" height="30" rx="6" fill="#0f172a" stroke="#475569" strokeWidth="1.5" />
-                          <text x="77" y="20" fill="#ffffff" fontSize="12" fontWeight="900" textAnchor="middle">
-                            {bayTitle}
-                          </text>
-                        </g>
-                      );
-                    })}
-
-                    {/* Side Tier Headers */}
-                    <g transform="translate(5, 60)">
-                      <rect x="0" y="0" width="70" height="38" rx="6" fill="#fef3c7" stroke="#d97706" strokeWidth="1.5" />
-                      <text x="35" y="16" fill="#78350f" fontSize="10" fontWeight="900" textAnchor="middle">TẦNG 3</text>
-                      <text x="35" y="28" fill="#92400e" fontSize="8.5" fontWeight="800" textAnchor="middle">Mức A (Cao)</text>
-                    </g>
-                    <g transform="translate(5, 185)">
-                      <rect x="0" y="0" width="70" height="38" rx="6" fill="#dbeafe" stroke="#2563eb" strokeWidth="1.5" />
-                      <text x="35" y="16" fill="#1e3a8a" fontSize="10" fontWeight="900" textAnchor="middle">TẦNG 2</text>
-                      <text x="35" y="28" fill="#1d4ed8" fontSize="8.5" fontWeight="800" textAnchor="middle">Mức B (Giữa)</text>
-                    </g>
-                    <g transform="translate(5, 310)">
-                      <rect x="0" y="0" width="70" height="38" rx="6" fill="#fee2e2" stroke="#dc2626" strokeWidth="1.5" />
-                      <text x="35" y="16" fill="#7f1d1d" fontSize="10" fontWeight="900" textAnchor="middle">TẦNG 1</text>
-                      <text x="35" y="28" fill="#b91c1c" fontSize="8.5" fontWeight="900" textAnchor="middle">MẶT ĐẤT</text>
-                    </g>
-
-                    {/* Steel Upright Posts & Heavy Duty Beams */}
-                    {[80, 255, 430, 605, 780, 955].map((postX, i) => (
-                      <rect key={`pdf4-post-${i}`} x={postX} y="50" width="14" height="380" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1" />
-                    ))}
-                    <rect x="75" y="150" width="895" height="12" fill="#ea580c" rx="2" />
-                    <rect x="75" y="275" width="895" height="12" fill="#ea580c" rx="2" />
-                    <rect x="75" y="400" width="895" height="12" fill="#ea580c" rx="2" />
-
-                    {/* Containers / Pallets with White Label Tags P-1, P-2 */}
-                    {[3, 2, 1].map((tierNum) => {
-                      const tierY = tierNum === 3 ? 60 : tierNum === 2 ? 185 : 310;
-                      return [0, 1, 2, 3, 4].map((bIdx) => {
-                        const bayX = 98 + bIdx * 175;
-                        return [1, 2].map((slotNum) => {
-                          const slotX = bayX + (slotNum - 1) * 72;
-                          const fillColor = tierNum === 3 ? '#f59e0b' : tierNum === 2 ? '#2563eb' : '#dc2626';
-
-                          return (
-                            <g key={`pdf4-box-${bIdx}-${tierNum}-${slotNum}`} transform={`translate(${slotX}, ${tierY})`}>
-                              <rect x="0" y="12" width="65" height="75" rx="5" fill={fillColor} stroke="#0f172a" strokeWidth="1.5" />
-                              <rect x="0" y="87" width="65" height="8" fill="#78350f" />
-                              <rect x="12" y="38" width="41" height="22" rx="4" fill="#ffffff" stroke="#0f172a" strokeWidth="1.5" />
-                              <text x="32" y="53" fill="#0f172a" fontSize="11" fontWeight="900" textAnchor="middle" fontFamily="monospace">
-                                P-{slotNum}
-                              </text>
-                            </g>
-                          );
-                        });
-                      });
-                    })}
-                  </svg>
+                  <IsometricRackSVG
+                    rackId={selectedRackId || 'A'}
+                    storageType={pdf4Config?.storageType || 'pallets'}
+                    itemsPerBay={pdf4Config?.itemsPerBay || 2}
+                    tierColors={pdf4Config?.tierColors || { 3: '#f59e0b', 2: '#3b82f6', 1: '#dc2626' }}
+                    bayNumbers={['01', '02', '03', '04', '05']}
+                    selectedBay={null}
+                    selectedTier={null}
+                    selectedSlot={null}
+                    onSelectSlot={() => {}}
+                    getSlotLabel={(bay, tier, slot) => {
+                      const key = `${selectedRackId || 'A'}-${bay}-${tier}-${slot}`;
+                      if (pdf4Config?.customSlotLabels && pdf4Config.customSlotLabels[key]) {
+                        return pdf4Config.customSlotLabels[key];
+                      }
+                      const stType = pdf4Config?.storageType || 'pallets';
+                      if (stType === 'pallets') return `P-${slot}`;
+                      if (stType === 'bins') return `#${slot}`;
+                      return `C-${slot}`;
+                    }}
+                    getSlotItem={(bay, tier, slot) => {
+                      const loc = `${selectedRackId || 'A'}-${bay}-${tier}-${slot}`;
+                      return items.find(i => i.locationCode === loc);
+                    }}
+                    tagFontSize={pdf4Config?.tagFontSize || 14}
+                  />
                 )}
               </div>
+
+              {/* (Editable Matrix Grid removed to enforce consistency with 3D view) */}
 
               {/* Bottom Summary Footer */}
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-300 flex items-center justify-between text-xs">

@@ -146,18 +146,17 @@ export const RackSlottingMatrixEditor: React.FC<RackSlottingMatrixEditorProps> =
     onUpdateRacks(updatedRacks);
   };
 
-  // Helper to find item at rack, bay, tier
-  const getItemAt = (bayNum: string, tier: number): InventoryItem | undefined => {
-    const locPattern = `${rackId}-${bayNum}-${tier}`;
+  // Helper to find item at rack, bay, tier, and slot position (1 or 2)
+  const getItemAt = (bayNum: string, tier: number, pos: number): InventoryItem | undefined => {
     return items.find(
-      i => i.rackId === rackId && i.bayId === bayNum && i.tier === tier
-    ) || items.find(i => i.location?.startsWith(locPattern));
+      i => i.rackId === rackId && i.bayId === bayNum && i.tier === tier && (i.slot === pos || (!i.slot && pos === 1))
+    );
   };
 
   // Inline Direct Editing of Item Name in Cell
-  const handleCellNameChange = (bayNum: string, tier: number, newName: string) => {
+  const handleCellNameChange = (bayNum: string, tier: number, pos: number, newName: string) => {
     if (!onUpdateItems) return;
-    const existing = getItemAt(bayNum, tier);
+    const existing = getItemAt(bayNum, tier, pos);
 
     if (existing) {
       if (newName.trim() === '') {
@@ -171,22 +170,22 @@ export const RackSlottingMatrixEditor: React.FC<RackSlottingMatrixEditorProps> =
     } else if (newName.trim() !== '') {
       // Create new inventory item on this slot
       const newItem: InventoryItem = {
-        id: `item-${rackId}-${bayNum}-${tier}-${Date.now()}`,
-        code: `VT-${rackId}${bayNum}${tier}`,
+        id: `item-${rackId}-${bayNum}-${tier}-${pos}-${Date.now()}`,
+        code: `VT-${rackId}${bayNum}${tier}${pos}`,
         name: newName,
         category: activeRack?.category || 'Linh kiện',
-        location: `${rackId}-${bayNum}-${tier}-1`,
+        location: `${rackId}-${bayNum}-${tier}-${pos}`,
         rackId: rackId,
         bayId: bayNum,
         tier: tier,
-        slot: 1,
-        direction: '↑',
+        slot: pos,
+        direction: pos === 1 ? '←' : '→',
         spec: 'Tiêu chuẩn',
         unit: 'Cái',
         quantity: 100,
         minQuantity: 10,
         status: 'in_stock',
-        barcode: `893601${rackId.charCodeAt(0)}${bayNum}${tier}`,
+        barcode: `893601${rackId.charCodeAt(0)}${bayNum}${tier}${pos}`,
         updatedAt: new Date().toISOString().slice(0, 16).replace('T', ' '),
       };
       onUpdateItems([...items, newItem]);
@@ -194,9 +193,9 @@ export const RackSlottingMatrixEditor: React.FC<RackSlottingMatrixEditorProps> =
   };
 
   // Quick Clear a cell
-  const handleClearSlot = (bayNum: string, tier: number) => {
+  const handleClearSlot = (bayNum: string, tier: number, pos: number) => {
     if (!onUpdateItems) return;
-    const existing = getItemAt(bayNum, tier);
+    const existing = getItemAt(bayNum, tier, pos);
     if (existing) {
       const updated = items.filter(i => i.id !== existing.id);
       onUpdateItems(updated);
@@ -356,48 +355,55 @@ export const RackSlottingMatrixEditor: React.FC<RackSlottingMatrixEditorProps> =
 
                   {/* Bay Cells */}
                   {bays.map((bay) => {
-                    const item = getItemAt(bay.bayNumber, tierNum);
-                    const slotLocation = `${rackId}-${bay.bayNumber}-${tierNum}`;
                     const isCurrentStation = currentPosition?.rackId === rackId && currentPosition?.bayId === bay.bayNumber && (currentPosition?.tier || 3) === tierNum;
 
                     return (
                       <div
                         key={`cell-${bay.bayNumber}-${tierNum}`}
-                        className={`flex-1 min-w-0 min-h-[56px] p-1 sm:p-1.5 rounded-lg border-2 flex flex-col justify-between transition-all bg-white relative ${
+                        className={`flex-1 min-w-0 min-h-[56px] p-1 sm:p-1.5 rounded-lg border-2 flex gap-1.5 transition-all bg-white relative ${
                           isCurrentStation 
                             ? 'border-teal-500 ring-2 ring-teal-400/40 shadow-md' 
                             : 'border-slate-300 hover:border-slate-400 shadow-xs'
                         }`}
                       >
-                        {/* Cell Top Header */}
-                        <div className="flex items-center justify-between gap-0.5 mb-1">
-                          <span className="text-[8px] sm:text-[9px] font-mono font-bold text-slate-500 bg-slate-100 px-1 rounded truncate">
-                            {slotLocation}
-                          </span>
-                          {item && (
-                            <button
-                              onClick={() => handleClearSlot(bay.bayNumber, tierNum)}
-                              className="text-slate-400 hover:text-red-500 p-0.5 rounded transition-colors flex-shrink-0"
-                              title="Xóa linh kiện ở ô này"
-                            >
-                              <X className="w-2.5 h-2.5" />
-                            </button>
-                          )}
-                        </div>
+                        {[1, 2].map(pos => {
+                          const item = getItemAt(bay.bayNumber, tierNum, pos);
+                          const slotLocation = `${rackId}-${bay.bayNumber}-${tierNum}-${pos}`;
+                          
+                          return (
+                            <div key={`pos-${pos}`} className="flex-1 flex flex-col justify-between min-w-0">
+                              {/* Cell Top Header */}
+                              <div className="flex items-center justify-between gap-0.5 mb-1">
+                                <span className="text-[7.5px] sm:text-[8px] font-mono font-bold text-slate-500 bg-slate-100 px-1 rounded truncate">
+                                  {slotLocation}
+                                </span>
+                                {item && (
+                                  <button
+                                    onClick={() => handleClearSlot(bay.bayNumber, tierNum, pos)}
+                                    className="text-slate-400 hover:text-red-500 p-0.5 rounded transition-colors flex-shrink-0"
+                                    title={`Xóa linh kiện ở ô ${slotLocation}`}
+                                  >
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                )}
+                              </div>
 
-                        {/* Direct Editable Part Name Input */}
-                        <input
-                          type="text"
-                          value={item?.name || ''}
-                          onChange={(e) => handleCellNameChange(bay.bayNumber, tierNum, e.target.value)}
-                          placeholder="+ Linh kiện..."
-                          className={`w-full text-[10px] sm:text-xs font-bold px-1 py-0.5 rounded border transition-colors focus:outline-none truncate ${
-                            item?.name 
-                              ? 'bg-amber-50/50 border-amber-300 text-slate-900 focus:bg-white focus:border-teal-500' 
-                              : 'bg-transparent border-dashed border-slate-300 text-slate-400 placeholder:text-slate-400 focus:bg-white focus:border-teal-500'
-                          }`}
-                          title={`Gõ tên linh kiện cho ô ${slotLocation}`}
-                        />
+                              {/* Direct Editable Part Name Input */}
+                              <input
+                                type="text"
+                                value={item?.name || ''}
+                                onChange={(e) => handleCellNameChange(bay.bayNumber, tierNum, pos, e.target.value)}
+                                placeholder="+ Linh kiện..."
+                                className={`w-full text-[9px] sm:text-[10px] font-bold px-1 py-0.5 rounded border transition-colors focus:outline-none truncate ${
+                                  item?.name 
+                                    ? 'bg-amber-50/50 border-amber-300 text-slate-900 focus:bg-white focus:border-teal-500' 
+                                    : 'bg-transparent border-dashed border-slate-300 text-slate-400 placeholder:text-slate-400 focus:bg-white focus:border-teal-500'
+                                }`}
+                                title={`Gõ tên linh kiện cho ô ${slotLocation}`}
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })}
@@ -423,41 +429,43 @@ export const RackSlottingMatrixEditor: React.FC<RackSlottingMatrixEditorProps> =
             </thead>
             <tbody className="divide-y divide-slate-100 font-sans">
               {bays.flatMap((bay) => 
-                tierNumbers.map((tierNum) => {
-                  const item = getItemAt(bay.bayNumber, tierNum);
-                  const slotLocation = `${rackId}-${bay.bayNumber}-${tierNum}`;
+                tierNumbers.flatMap((tierNum) => 
+                  [1, 2].map(pos => {
+                    const item = getItemAt(bay.bayNumber, tierNum, pos);
+                    const slotLocation = `${rackId}-${bay.bayNumber}-${tierNum}-${pos}`;
 
-                  return (
-                    <tr key={`list-${slotLocation}`} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-2 font-mono font-bold text-teal-700">
-                        {slotLocation}
-                      </td>
-                      <td className="p-2 text-slate-500 text-[11px]">
-                        Khoang {bay.bayNumber} • Tầng {tierNum}
-                      </td>
-                      <td className="p-2">
-                        <input
-                          type="text"
-                          value={item?.name || ''}
-                          onChange={(e) => handleCellNameChange(bay.bayNumber, tierNum, e.target.value)}
-                          placeholder="Nhập tên linh kiện..."
-                          className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 focus:border-teal-500 rounded px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none"
-                        />
-                      </td>
-                      <td className="p-2 text-right">
-                        {item && (
-                          <button
-                            onClick={() => handleClearSlot(bay.bayNumber, tierNum)}
-                            className="text-slate-400 hover:text-red-500 p-1 hover:bg-red-50 rounded"
-                            title="Xóa trắng ô"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
+                    return (
+                      <tr key={`list-${slotLocation}`} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-2 font-mono font-bold text-teal-700">
+                          {slotLocation}
+                        </td>
+                        <td className="p-2 text-slate-500 text-[11px]">
+                          Khoang {bay.bayNumber} • Tầng {tierNum} • Vị trí {pos}
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={item?.name || ''}
+                            onChange={(e) => handleCellNameChange(bay.bayNumber, tierNum, pos, e.target.value)}
+                            placeholder="Nhập tên linh kiện..."
+                            className="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 focus:border-teal-500 rounded px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none"
+                          />
+                        </td>
+                        <td className="p-2 text-right">
+                          {item && (
+                            <button
+                              onClick={() => handleClearSlot(bay.bayNumber, tierNum, pos)}
+                              className="text-slate-400 hover:text-red-500 p-1 hover:bg-red-50 rounded"
+                              title="Xóa trắng ô"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )
               )}
             </tbody>
           </table>
@@ -467,7 +475,7 @@ export const RackSlottingMatrixEditor: React.FC<RackSlottingMatrixEditorProps> =
       {/* 4. Footer Note */}
       <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-500 flex items-center justify-between">
         <span className="font-semibold text-teal-800">
-          Kệ {rackId}: {numBays} khoang × {numTiers} tầng = {numBays * numTiers} vị trí ô
+          Kệ {rackId}: {numBays} khoang × {numTiers} tầng × 2 vị trí = {numBays * numTiers * 2} vị trí ô
         </span>
         <span>Tự động lưu vào hệ thống</span>
       </div>

@@ -291,9 +291,13 @@ export default function App() {
   const [isEditorModalOpen, setIsEditorModalOpen] = useState<boolean>(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState<boolean>(false);
   const [activePdfTabToOpen, setActivePdfTabToOpen] = useState<'pdf1' | 'pdf2' | 'pdf3' | 'pdf4'>('pdf1');
+  const [pdf4ConfigState, setPdf4ConfigState] = useState<any>(null);
 
-  const handleOpenPrintModal = (tab: 'pdf1' | 'pdf2' | 'pdf3' | 'pdf4' = 'pdf1') => {
+  const handleOpenPrintModal = (tab: 'pdf1' | 'pdf2' | 'pdf3' | 'pdf4' = 'pdf1', pdf4Config?: any) => {
     setActivePdfTabToOpen(tab);
+    if (pdf4Config) {
+      setPdf4ConfigState(pdf4Config);
+    }
     setIsPrintModalOpen(true);
   };
 
@@ -761,6 +765,7 @@ export default function App() {
         safetyRules={safetyRules}
         initialPdfTab={activePdfTabToOpen}
         selectedRackId={selectedRackId}
+        pdf4Config={pdf4ConfigState}
       />
 
     </div>
