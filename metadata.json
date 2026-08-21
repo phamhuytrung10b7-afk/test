@@ -1,0 +1,6 @@
+{
+  "name": "Warehouse Isometric Map & Directory Board",
+  "description": "Bảng sơ đồ phối cảnh 3D kho hàng (3D Warehouse Layout), định vị vị trí đứng linh hoạt, sơ đồ ô kệ và tra cứu vật tư trực quan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
