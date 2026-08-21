@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.8);
+}
+
+/* Hide scrollbar for clean tab headers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Print CSS Styles for A4 Landscape PDF export */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 5mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide background app layout when printing */
+  body > *:not(.fixed) {
+    display: none !important;
+  }
+
+  /* Hide backdrop overlay styling */
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Hide non-printable elements like header bars, buttons, sidebars */
+  .fixed.inset-0 > div > div:not(.flex-1) {
+    display: none !important;
+  }
+
+  .no-print,
+  button,
+  input[type="file"],
+  .no-print-area {
+    display: none !important;
+  }
+
+  /* Make the active printable container occupy full page */
+  [id^="printable-pdf-container-"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    page-break-after: always;
+  }
+}
