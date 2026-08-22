@@ -72,6 +72,7 @@ export const SingleRack3DDetailView: React.FC<SingleRack3DDetailViewProps> = ({
   // Layout & Perspective Controls
   const [zoomLevel, setZoomLevel] = useState<number>(1.1);
   const [isFullWidth, setIsFullWidth] = useState<boolean>(true);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   // Editable Tag Font Size (Default 14px for bold, highly legible text)
   const [tagFontSize, setTagFontSize] = useState<number>(14);
@@ -370,7 +371,7 @@ export const SingleRack3DDetailView: React.FC<SingleRack3DDetailViewProps> = ({
             title={isFullWidth ? "Thu nhỏ layout" : "Mở rộng full màn hình"}
           >
             {isFullWidth ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            <span className="hidden lg:inline">{isFullWidth ? "Xem Rọn" : "Mở Rộng Full"}</span>
+            <span className="hidden lg:inline">{isFullWidth ? "Thu Gọn" : "Mở Rộng Full"}</span>
           </button>
 
           {/* Zoom Controls */}
@@ -446,7 +447,7 @@ export const SingleRack3DDetailView: React.FC<SingleRack3DDetailViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         
         {/* CENTER 3D ISOMETRIC RACK DISPLAY CANVAS (CLEAN CAD STYLE ON WHITE CANVAS) */}
-        <div className={`${isFullWidth ? 'lg:col-span-12' : 'lg:col-span-8'} bg-white rounded-2xl border-2 border-slate-300 shadow-xl overflow-hidden flex flex-col relative`}>
+        <div className={`${isFullscreen ? 'fixed inset-0 z-[99999] w-screen h-screen rounded-none' : isFullWidth ? 'lg:col-span-12 rounded-2xl border-2 border-slate-300 shadow-xl' : 'lg:col-span-8 rounded-2xl border-2 border-slate-300 shadow-xl'} bg-white overflow-hidden flex flex-col relative`}>
           
           {/* Header Banner */}
           <div className="bg-slate-900 text-white px-5 py-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800">
@@ -458,18 +459,18 @@ export const SingleRack3DDetailView: React.FC<SingleRack3DDetailViewProps> = ({
             </div>
             
             <div className="flex items-center gap-3 text-xs font-mono">
-              <span className="bg-slate-800 text-amber-300 px-3 py-1 rounded-lg border border-slate-700 font-bold">
+              <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-1.5 text-teal-400 hover:text-teal-300 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer mr-1" title={isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}>{isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}</button><span className="bg-slate-800 text-amber-300 px-3 py-1 rounded-lg border border-slate-700 font-bold">
                 {storageType === 'bins' ? `📦 LOẠI: THÙNG NHỰA 5S (${itemsPerBay} thùng/khoang)` : storageType === 'pallets' ? `🪵 LOẠI: PALLET HÀNG (${itemsPerBay} pallet/khoang)` : `📦 LOẠI: THÙNG CARTON (${itemsPerBay} thùng/khoang)`}
               </span>
             </div>
           </div>
 
           {/* CANVAS AREA (CLEAN WHITE BACKGROUND, ISOMETRIC 3D CAD MODEL) */}
-          <div className="w-full bg-white p-3 sm:p-5 relative overflow-auto flex flex-col items-center justify-center select-none min-h-[600px]">
+          <div className={`w-full bg-white p-3 sm:p-5 relative overflow-auto flex flex-col items-center select-none ${isFullscreen ? "flex-1" : "min-h-[600px]"}`}>
             
             {/* HIGH-PRECISION ISOMETRIC 3D INDUSTRIAL RACK SVG MODEL */}
             <div 
-              className="w-full flex items-center justify-center transition-transform duration-300 my-2"
+              className="w-full min-w-max flex justify-center transition-transform duration-300 my-2 origin-top"
               style={{ transform: `scale(${zoomLevel})` }}
             >
               <IsometricRackSVG
