@@ -637,6 +637,7 @@ export default function App() {
             racks={racks}
             selectedRackId={selectedRackId || 'A'}
             onSelectRack={handleSelectRack}
+            onUpdateRacks={setRacksWithHistory}
             items={items}
             onUpdateItems={setItemsWithHistory}
             currentPosition={currentPosition}

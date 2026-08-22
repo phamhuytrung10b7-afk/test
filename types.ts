@@ -30,6 +30,7 @@ export interface FloorMarking {
 export type FacilityObjectType = 
   | 'rack' 
   | 'mezzanine' 
+  | 'bin_rack'
   | 'pallet_staging' 
   | 'conveyor' 
   | 'agv' 
@@ -60,6 +61,8 @@ export interface WarehouseFacilityObject {
   totesPerLane?: number;
   hasStairs?: boolean;
   hasTugger?: boolean;
+  hasAndonBoard?: boolean;
+  hasFloorArrow?: boolean;
   notes?: string;
 }
 
@@ -97,6 +100,7 @@ export interface WarehouseRack {
   bayLength?: number; // length per bay (default ~4.0)
   bays: RackBay[];
   category: string; // "Kim loại", "Nhựa", "Bao bì", "Linh kiện"
+  rackType?: 'heavy_pallet' | 'bin_shelving' | 'carton_flow';
 }
 
 export interface WarehouseZone {

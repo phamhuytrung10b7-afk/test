@@ -320,37 +320,37 @@ export const defaultZones: WarehouseZone[] = [
 ];
 
 export const defaultFacilities: WarehouseFacilityObject[] = [
-  // 1. White Elevated Mezzanine Canopy (Sàn Mái Che Trắng)
+  // 1. SÀN MEZZANINE TRÊN NÓC CÁC DÃY KỆ (RACK-SUPPORTED MEZZANINE 3D - ẢNH 4)
   {
     id: 'mezzanine-1',
-    name: 'Sàn Gác Lửng & Mái Che Trắng Mezzanine',
+    name: 'Sàn Mezzanine Trên Nóc Kệ (Ảnh 4)',
     type: 'mezzanine',
-    x: 68,
-    y: 46,
-    width: 38,
-    length: 16,
+    x: 70,
+    y: 44,
+    width: 36,
+    length: 18,
     height: 28,
-    color: '#f8fafc',
-    category: 'Kết cấu sàn tầng lửng',
+    color: '#e2e8f0',
+    category: 'Sàn lửng trên dãy kệ',
     hasStairs: true,
-    notes: 'Sàn mái che trắng kiến trúc hiện đại, khung thép chịu lực',
+    notes: 'Sàn lửng gác trên các dãy kệ chứa hàng bên dưới (Rack-Supported Mezzanine), mặt sàn phẳng xám bạc với lan can hoa sắt sọc đứng và cầu thang thép',
   },
-  // 2. Blue Storage Containers / Shuttle Modules (Cụm Thùng Chứa Xanh)
+  // 2. KỆ THÉP HỘP KẼM HÀN BASIC ĐỂ THÙNG NHỰA 5S (ẢNH 3)
   {
-    id: 'blue-containers-1',
-    name: 'Cụm Module Thùng Chứa Xanh Công Nghiệp',
-    type: 'pallet_staging',
+    id: 'bin-rack-1',
+    name: 'Kệ Thép Hộp Kẽm Hàn Basic (Ảnh 3)',
+    type: 'bin_rack',
     x: 84,
-    y: 46,
-    width: 14,
-    length: 14,
-    height: 8,
-    boxCols: 2,
-    boxRows: 4,
-    boxHeight: 8,
+    y: 68,
+    width: 8,
+    length: 22,
+    height: 16,
+    tiersCount: 2,
+    hasAndonBoard: true,
+    hasFloorArrow: true,
     color: '#2563eb',
-    category: 'Module thùng chứa tự động',
-    notes: 'Khối thùng chứa xanh chuẩn công nghiệp',
+    category: 'Kệ Thép Hộp Kẽm 5S',
+    notes: 'Kệ hàn từ thép hộp mạ kẽm basic 2 tầng để thùng nhựa xanh, bảng Andon 5S 3 đèn đỏ/trắng/vàng, vạch sơn vàng và mũi tên',
   },
   // 3. Gravity Flow Shelves & Sorting Racks (Kệ Phân Loại Khay Đen)
   {
@@ -358,7 +358,7 @@ export const defaultFacilities: WarehouseFacilityObject[] = [
     name: 'Cụm Kệ Trượt Phân Loại Khay Đen #01',
     type: 'pallet_staging',
     x: 66,
-    y: 64,
+    y: 68,
     width: 10,
     length: 12,
     height: 6,

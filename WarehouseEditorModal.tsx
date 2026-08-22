@@ -154,7 +154,8 @@ export const WarehouseEditorModal: React.FC<WarehouseEditorModalProps> = ({
     const type = presetType || newFacType;
     let name = newFacName.trim();
     if (!name) {
-      if (type === 'mezzanine') name = `Sàn Lửng Mezzanine #${localFacilities.length + 1}`;
+      if (type === 'bin_rack') name = `Kệ Thùng Nhựa 5S #${localFacilities.filter(f => f.type === 'bin_rack').length + 1}`;
+      else if (type === 'mezzanine') name = `Sàn Lửng Mezzanine #${localFacilities.filter(f => f.type === 'mezzanine').length + 1}`;
       else if (type === 'pallet_staging') name = `Khu Vực Pallet Staging #${localFacilities.length + 1}`;
       else if (type === 'conveyor') name = `Băng Tải Phân Loại #${localFacilities.length + 1}`;
       else if (type === 'agv') name = `Xe AGV Tự Động #${localFacilities.length + 1}`;
@@ -169,12 +170,15 @@ export const WarehouseEditorModal: React.FC<WarehouseEditorModalProps> = ({
       type,
       x: Number(newFacX),
       y: Number(newFacY),
-      width: Number(newFacW),
-      length: Number(newFacL),
-      height: Number(newFacH),
-      color: newFacColor,
+      width: type === 'bin_rack' ? 8 : type === 'mezzanine' ? 34 : Number(newFacW),
+      length: type === 'bin_rack' ? 24 : type === 'mezzanine' ? 20 : Number(newFacL),
+      height: type === 'bin_rack' ? 16 : type === 'mezzanine' ? 28 : Number(newFacH),
+      color: type === 'bin_rack' ? '#2563eb' : newFacColor,
       hasStairs: type === 'mezzanine' ? newFacStairs : undefined,
-      category: type === 'mezzanine' ? 'Sàn tầng lửng' : type === 'pallet_staging' ? 'Khu Pallet' : 'Thiết bị kho',
+      tiersCount: type === 'bin_rack' ? 2 : undefined,
+      hasAndonBoard: type === 'bin_rack' ? true : undefined,
+      hasFloorArrow: type === 'bin_rack' ? true : undefined,
+      category: type === 'bin_rack' ? 'Kệ Thùng Nhựa 5S' : type === 'mezzanine' ? 'Sàn tầng lửng' : type === 'pallet_staging' ? 'Khu Pallet' : 'Thiết bị kho',
     };
 
     const updated = [...localFacilities, newFac];
@@ -834,15 +838,25 @@ export const WarehouseEditorModal: React.FC<WarehouseEditorModalProps> = ({
                   <span className="text-[11px] text-slate-400 font-medium">Bấm để thả ngay lên sơ đồ 3D</span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleAddFacility(undefined, 'bin_rack')}
+                    className="p-3 bg-blue-950/70 hover:bg-blue-900/80 border-2 border-blue-500 rounded-xl text-left transition-all group cursor-pointer shadow-md scale-102"
+                  >
+                    <div className="text-lg mb-1">📥</div>
+                    <div className="text-xs font-black text-blue-200 group-hover:text-blue-100">Kệ Thép Kẽm Hàn (Ảnh 3)</div>
+                    <div className="text-[10px] text-blue-300">Basic 2 tầng + Thùng xanh</div>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => handleAddFacility(undefined, 'mezzanine')}
-                    className="p-3 bg-purple-950/50 hover:bg-purple-900/60 border border-purple-800/80 rounded-xl text-left transition-all group cursor-pointer"
+                    className="p-3 bg-purple-950/70 hover:bg-purple-900/80 border-2 border-purple-500 rounded-xl text-left transition-all group cursor-pointer shadow-md scale-102"
                   >
                     <div className="text-lg mb-1">🏢</div>
-                    <div className="text-xs font-bold text-purple-200 group-hover:text-purple-100">Sàn Mezzanine</div>
-                    <div className="text-[10px] text-purple-400">Có cầu thang 3D</div>
+                    <div className="text-xs font-black text-purple-200 group-hover:text-purple-100">Sàn Trên Dãy Kệ (Ảnh 4)</div>
+                    <div className="text-[10px] text-purple-300">Chân là dãy kệ + Lan can</div>
                   </button>
 
                   <button
@@ -925,7 +939,8 @@ export const WarehouseEditorModal: React.FC<WarehouseEditorModalProps> = ({
                       onChange={(e) => setNewFacType(e.target.value as FacilityObjectType)}
                       className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs font-bold text-white"
                     >
-                      <option value="mezzanine">🏢 Sàn Lửng Mezzanine</option>
+                      <option value="bin_rack">📥 Kệ Để Thùng Nhựa 5S (Ảnh 3)</option>
+                      <option value="mezzanine">🏢 Sàn Lửng Mezzanine (Ảnh 4)</option>
                       <option value="pallet_staging">📦 Khu Vực Pallet Staging</option>
                       <option value="conveyor">⚙️ Băng Tải Con Lăn</option>
                       <option value="agv">🚚 Xe AGV Tự Động</option>

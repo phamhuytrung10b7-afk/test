@@ -3,6 +3,8 @@ import { InventoryItem } from './types';
 
 export interface IsometricRackSVGProps {
   rackId: string;
+  rackDisplayName?: string;
+  onDoubleClickRackName?: () => void;
   storageType: 'bins' | 'pallets' | 'cartons';
   itemsPerBay: number;
   tierColors: { [tier: number]: string };
@@ -19,6 +21,8 @@ export interface IsometricRackSVGProps {
 
 export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
   rackId,
+  rackDisplayName,
+  onDoubleClickRackName,
   storageType,
   itemsPerBay,
   tierColors,
@@ -32,11 +36,13 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
   getSlotItem,
   tagFontSize = 14,
 }) => {
-  // We need to bring the SVG code here.
+  const displayTitle = rackDisplayName || (rackId.toUpperCase().startsWith('KỆ') ? rackId : `KỆ ${rackId}`);
+  const titleBadgeWidth = Math.max(72, displayTitle.length * 10.5 + 24);
+
   return (
     <svg 
-      viewBox="-20 -10 1070 540" 
-      className="w-full h-auto overflow-visible"
+      viewBox="-40 -15 1110 560" 
+      className="w-full h-auto overflow-visible select-none"
     >
       <defs>
         {/* Clean Industrial Soft Shadow Filter */}
@@ -47,26 +53,41 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
           <feGaussianBlur stdDeviation="4" result="blur" />
           <feComposite in="SourceGraphic" in2="blur" operator="over" />
         </filter>
+        <filter id="lightGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="#ffffff" floodOpacity="0.8" />
+        </filter>
       </defs>
 
       {/* 1. GROUND ISOMETRIC 5S SAFETY ZONE & FLOOR BAY MARKERS */}
       <g id="ground-5s-floor">
         <polygon 
-          points="30,460 990,460 960,510 0,510" 
+          points="20,460 995,460 965,525 -15,525" 
           fill="#fef08a" 
           stroke="#ca8a04" 
           strokeWidth="2.5" 
           strokeDasharray="12 6"
         />
-        <text x="490" y="478" fill="#854d0e" fontSize="11" fontWeight="900" letterSpacing="2" textAnchor="middle">
-          ⚠️ MẶT ĐẤT (TẦNG 1) — VẠCH SƠN AN TOÀN 5S KHO BÌNH DƯƠNG (KỆ {rackId})
+        <text x="490" y="476" fill="#854d0e" fontSize="11" fontWeight="900" letterSpacing="2" textAnchor="middle">
+          ⚠️ MẶT ĐẤT (TẦNG 1) — VẠCH SƠN AN TOÀN 5S KHO BÌNH DƯƠNG ({displayTitle})
         </text>
+
+        {/* 5S Yellow Floor Directional Navigation Arrow (như Ảnh 3) */}
+        <g id="floor-navigation-arrow" transform="translate(15, 482)">
+          <polygon 
+            points="0,12 28,12 28,4 48,18 28,32 28,24 0,24" 
+            fill="#eab308" 
+            stroke="#854d0e" 
+            strokeWidth="1.5" 
+            filter="url(#cadShadow)"
+          />
+        </g>
+
         {bayNumbers.map((bay, idx) => {
           const bayCenterX = 172 + idx * 175;
           return (
-            <g key={`floor-badge-bay-${bay}`} transform={`translate(${bayCenterX - 22}, 485)`}>
-              <rect x="0" y="0" width="44" height="20" rx="6" fill="#0f172a" stroke="#38bdf8" strokeWidth="1.5" filter="url(#cadShadow)" />
-              <text x="22" y="14" fill="#ffffff" fontSize="11" fontWeight="900" textAnchor="middle" fontFamily="monospace">
+            <g key={`floor-badge-bay-${bay}`} transform={`translate(${bayCenterX - 22}, 490)`}>
+              <rect x="0" y="0" width="44" height="22" rx="6" fill="#0f172a" stroke="#38bdf8" strokeWidth="1.5" filter="url(#cadShadow)" />
+              <text x="22" y="15" fill="#ffffff" fontSize="11.5" fontWeight="900" textAnchor="middle" fontFamily="monospace">
                 {bay}
               </text>
             </g>
@@ -74,12 +95,44 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
         })}
       </g>
 
-      {/* FLOATING RACK CALLOUT BADGE */}
-      <g id="floating-rack-badge" transform="translate(20, 10)">
-        <rect x="0" y="0" width="65" height="32" rx="10" fill="#ea580c" stroke="#ffffff" strokeWidth="2.5" filter="url(#cadShadow)" />
-        <text x="32.5" y="21" fill="#ffffff" fontSize="13" fontWeight="900" textAnchor="middle">
-          KỆ {rackId}
+      {/* FLOATING RACK CALLOUT BADGE (ẢNH 1 + 2) - KÍCH ĐÚP ĐỂ SỬA TÊN KỆ */}
+      <g 
+        id="floating-rack-badge" 
+        transform="translate(10, 10)"
+        className="cursor-pointer group/racktitle transition-all"
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          onDoubleClickRackName?.();
+        }}
+        onClick={(e) => {
+          // If clicked, also allow opening edit modal if desired
+        }}
+        title="Kích đúp vào đây để đổi tên kệ (Ảnh 1 & 2)"
+      >
+        <rect 
+          x="0" 
+          y="0" 
+          width={titleBadgeWidth} 
+          height="34" 
+          rx="10" 
+          fill="#ea580c" 
+          stroke="#ffffff" 
+          strokeWidth="2.5" 
+          filter="url(#cadShadow)" 
+          className="group-hover/racktitle:fill-orange-600 transition-colors"
+        />
+        <text 
+          x={titleBadgeWidth / 2} 
+          y="22" 
+          fill="#ffffff" 
+          fontSize="13.5" 
+          fontWeight="900" 
+          textAnchor="middle"
+        >
+          {displayTitle}
         </text>
+        {/* Subtle Edit hint dot */}
+        <circle cx={titleBadgeWidth - 10} cy="10" r="3" fill="#ffffff" opacity="0.6" className="group-hover/racktitle:opacity-100" />
       </g>
 
       {/* 2. TOP BAY HEADERS */}
@@ -150,7 +203,7 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
         {[80, 255, 430, 605, 780, 955].map((postX, i) => (
           <g key={`front-post-${i}`}>
             <polygon points={`${postX},55 ${postX - 10},45 ${postX - 10},445 ${postX},455`} fill="#1e293b" />
-            <rect x={postX} y="55" width="15" height="400" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1" filter="url(#cadShadow)" />
+            <rect x={postX} y="55" width="15" height="400" fill={storageType === 'bins' ? '#334155' : '#2563eb'} stroke="#1d4ed8" strokeWidth="1" filter="url(#cadShadow)" />
             {[...Array(25)].map((_, j) => (
               <circle key={`hole-${j}`} cx={postX + 7.5} cy={65 + j * 15} r="1.5" fill="#0f172a" />
             ))}
@@ -158,11 +211,48 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
         ))}
         {[180, 305, 430].map((beamY, i) => (
           <g key={`beam-level-${i}`}>
-            <polygon points={`95,${beamY} 85,${beamY - 10} 960,${beamY - 10} 970,${beamY}`} fill="#c2410c" />
-            <rect x="95" y={beamY} width="860" height="20" fill="#ea580c" stroke="#9a3412" strokeWidth="1" filter="url(#cadShadow)" />
+            <polygon points={`95,${beamY} 85,${beamY - 10} 960,${beamY - 10} 970,${beamY}`} fill={storageType === 'bins' ? '#334155' : '#c2410c'} />
+            <rect x="95" y={beamY} width="860" height="20" fill={storageType === 'bins' ? '#475569' : '#ea580c'} stroke="#1e293b" strokeWidth="1" filter="url(#cadShadow)" />
           </g>
         ))}
       </g>
+
+      {/* 5S RED ANDON / VISUAL MANAGEMENT HEAD SIGNBOARD (ẢNH 3 - ĐẦU KỆ THÙNG NHỰA) */}
+      {storageType === 'bins' && (
+        <g id="bin-rack-andon-signboard" transform="translate(68, 140)">
+          {/* Main Red Andon Board */}
+          <rect x="-35" y="0" width="42" height="150" rx="4" fill="#dc2626" stroke="#991b1b" strokeWidth="1.5" filter="url(#cadShadow)" />
+          {/* Header Bar */}
+          <rect x="-33" y="4" width="38" height="18" rx="2" fill="#7f1d1d" />
+          <text x="-14" y="16" fill="#ffffff" fontSize="8" fontWeight="900" textAnchor="middle">5S ANDON</text>
+
+          {/* 3 Status Signal Indicator Lights (Đèn Xanh 🟢, Trắng ⚪, Vàng 🟡 như Ảnh 3) */}
+          {/* Green Light 🟢 */}
+          <g transform="translate(-14, 38)">
+            <circle cx="0" cy="0" r="7.5" fill="#15803d" stroke="#14532d" strokeWidth="1" />
+            <circle cx="0" cy="0" r="5.5" fill="#22c55e" filter="url(#lightGlow)" />
+            <circle cx="-2" cy="-2" r="2" fill="#ffffff" opacity="0.8" />
+          </g>
+          {/* White Light ⚪ */}
+          <g transform="translate(-14, 60)">
+            <circle cx="0" cy="0" r="7.5" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="1" />
+            <circle cx="0" cy="0" r="5.5" fill="#f8fafc" />
+            <circle cx="-2" cy="-2" r="2" fill="#ffffff" opacity="0.9" />
+          </g>
+          {/* Yellow Light 🟡 */}
+          <g transform="translate(-14, 82)">
+            <circle cx="0" cy="0" r="7.5" fill="#b45309" stroke="#78350f" strokeWidth="1" />
+            <circle cx="0" cy="0" r="5.5" fill="#facc15" filter="url(#lightGlow)" />
+            <circle cx="-2" cy="-2" r="2" fill="#ffffff" opacity="0.8" />
+          </g>
+
+          {/* Label lines on the Red Board */}
+          <line x1="-31" y1="102" x2="3" y2="102" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
+          <text x="-14" y="116" fill="#fef08a" fontSize="7.5" fontWeight="900" textAnchor="middle">{rackId}</text>
+          <text x="-14" y="128" fill="#ffffff" fontSize="6.5" fontWeight="bold" textAnchor="middle">KHAY LINH KIỆN</text>
+          <text x="-14" y="139" fill="#fecaca" fontSize="6" fontWeight="bold" textAnchor="middle">SUNHOUSE</text>
+        </g>
+      )}
 
       {/* 5. 3D CONTAINERS & ITEMS LOGIC */}
       <g id="storage-containers-layer">
@@ -202,22 +292,38 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
                     <rect x="-4" y="-4" width={containerWidth + 8} height="124" fill="none" stroke="#06b6d4" strokeWidth="3" strokeDasharray="6 4" rx="6" filter="url(#targetGlow)" />
                   )}
 
-                  {/* STORAGE TYPE: BINS */}
+                  {/* STORAGE TYPE: BINS (THÙNG NHỰA XANH 5S NHƯ ẢNH 3) */}
                   {storageType === 'bins' && (
                     <g 
                       id={`bin-${bay}-${tier}-${slotNum}`}
                       className={onSelectSlot ? "cursor-pointer" : ""}
                       onClick={() => onSelectSlot && onSelectSlot(bay, tier, slotNum)}
                     >
-                      <polygon points={`2,18 12,0 ${containerWidth + 8},0 ${containerWidth - 2},18`} fill={customTierHex} stroke="#0f172a" strokeWidth="0.8" opacity="0.9" />
-                      <rect x="2" y="18" width={containerWidth - 4} height="76" rx="4" fill={customTierHex} stroke="#0f172a" strokeWidth="1.2" filter="url(#cadShadow)" />
-                      <polygon points={`${containerWidth - 2},18 ${containerWidth + 8},0 ${containerWidth + 8},76 ${containerWidth - 2},94`} fill={customTierHex} stroke="#0f172a" strokeWidth="0.8" opacity="0.75" />
-                      <rect x="4" y="24" width={containerWidth - 8} height="12" rx="2" fill="#ffffff" opacity="0.15" />
-                      <line x1="8" y1="84" x2={containerWidth - 8} y2="84" stroke="#0f172a" strokeWidth="2" opacity="0.3" strokeLinecap="round" />
+                      {/* Rear shadow & top opening rim */}
+                      <polygon points={`2,18 12,0 ${containerWidth + 8},0 ${containerWidth - 2},18`} fill="#1d4ed8" stroke="#1e3a8a" strokeWidth="1" />
+                      <polygon points={`6,16 13,3 ${containerWidth + 3},3 ${containerWidth - 6},16`} fill="#0f172a" fillOpacity="0.35" />
                       
+                      {/* Main Front Body of Navy Blue Plastic Bin */}
+                      <rect x="2" y="18" width={containerWidth - 4} height="76" rx="3" fill="#1e40af" stroke="#172554" strokeWidth="1.4" filter="url(#cadShadow)" />
+                      
+                      {/* Right 3D Side Face */}
+                      <polygon points={`${containerWidth - 2},18 ${containerWidth + 8},0 ${containerWidth + 8},76 ${containerWidth - 2},94`} fill="#1d4ed8" stroke="#172554" strokeWidth="1" />
+                      
+                      {/* Molded Hand Grip / Pocket Slot (Quai xách tay cầm) */}
+                      <rect x={containerWidth / 2 - 12} y="26" width="24" height="8" rx="4" fill="#0f172a" stroke="#1e3a8a" strokeWidth="1" />
+                      
+                      {/* Horizontal & Vertical Structural Ribs on Front Face */}
+                      <line x1="6" y1="42" x2={containerWidth - 6} y2="42" stroke="#172554" strokeWidth="1.5" />
+                      <line x1="6" y1="62" x2={containerWidth - 6} y2="62" stroke="#172554" strokeWidth="1.5" />
+                      <line x1="6" y1="84" x2={containerWidth - 6} y2="84" stroke="#172554" strokeWidth="1.8" />
+                      
+                      {/* White 5S Barcode Tag on Front of Bin */}
+                      <rect x={containerWidth / 2 - 16} y="47" width="32" height="11" rx="2" fill="#ffffff" stroke="#0f172a" strokeWidth="0.8" />
+                      <line x1={containerWidth / 2 - 12} y1="52" x2={containerWidth / 2 + 12} y2="52" stroke="#0f172a" strokeWidth="1" strokeDasharray="1.5 1" />
+
                       {containerWidth >= 35 && item && (
-                        <g transform={`translate(${containerWidth / 2}, 55)`}>
-                          <rect x={-Math.min(containerWidth / 2 - 4, 34)} y="-9" width={Math.min(containerWidth - 8, 68)} height="18" rx="3" fill="#0f172a" fillOpacity="0.75" />
+                        <g transform={`translate(${containerWidth / 2}, 74)`}>
+                          <rect x={-Math.min(containerWidth / 2 - 4, 34)} y="-9" width={Math.min(containerWidth - 8, 68)} height="18" rx="3" fill="#0f172a" fillOpacity="0.85" stroke="#38bdf8" strokeWidth="0.8" />
                           <text x="0" y="4" fill="#67e8f9" fontSize="9.5" fontWeight="900" textAnchor="middle">
                             {item.quantity} {item.unit || 'cái'}
                           </text>
@@ -226,7 +332,7 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
                     </g>
                   )}
 
-                  {/* STORAGE TYPE: PALLETS */}
+                  {/* STORAGE TYPE: PALLETS (ẢNH 2) */}
                   {storageType === 'pallets' && (
                     <g 
                       id={`pallet-${bay}-${tier}-${slotNum}`}
@@ -286,7 +392,7 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
                     </g>
                   )}
 
-                  {/* POSITION NAME TAG (TÊN VỊ TRÍ) — MOVED DOWN ONTO THE ORANGE BEAM BELOW EACH PALLET */}
+                  {/* POSITION NAME TAG (TÊN VỊ TRÍ) — ON THE ORANGE BEAM BELOW EACH CONTAINER */}
                   {containerWidth >= 20 && (
                     <g 
                       className={onSelectSlot ? "cursor-pointer group/label" : ""}

@@ -151,6 +151,38 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
   const [showMarkingsInStudio, setShowMarkingsInStudio] = useState(true);
   const [isExportingPng, setIsExportingPng] = useState(false);
 
+  // Label & Object Display Visibility Controls (Tùy chọn ẩn / hiện tên vật thể, kệ, nhãn)
+  const [showFacilityLabels, setShowFacilityLabels] = useState<boolean>(() => {
+    const saved = localStorage.getItem('warehouse_show_facility_labels');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [showRackLabels, setShowRackLabels] = useState<boolean>(() => {
+    const saved = localStorage.getItem('warehouse_show_rack_labels');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [showAnnotationLabels, setShowAnnotationLabels] = useState<boolean>(() => {
+    const saved = localStorage.getItem('warehouse_show_annotation_labels');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [showPinBadge, setShowPinBadge] = useState<boolean>(() => {
+    const saved = localStorage.getItem('warehouse_show_pin_badge');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [isLabelSettingsOpen, setIsLabelSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('warehouse_show_facility_labels', String(showFacilityLabels));
+  }, [showFacilityLabels]);
+  useEffect(() => {
+    localStorage.setItem('warehouse_show_rack_labels', String(showRackLabels));
+  }, [showRackLabels]);
+  useEffect(() => {
+    localStorage.setItem('warehouse_show_annotation_labels', String(showAnnotationLabels));
+  }, [showAnnotationLabels]);
+  useEffect(() => {
+    localStorage.setItem('warehouse_show_pin_badge', String(showPinBadge));
+  }, [showPinBadge]);
+
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -972,6 +1004,142 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
                 <Redo2 className="w-4 h-4" />
               </button>
             )}
+
+            {/* Label & Object Visibility Settings Popover Button */}
+            <div className="relative">
+              <button
+                onClick={() => setIsLabelSettingsOpen(!isLabelSettingsOpen)}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all shadow-md cursor-pointer ${
+                  !showFacilityLabels || !showRackLabels || !showAnnotationLabels || !showPinBadge
+                    ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700'
+                }`}
+                title="Cài đặt ẩn / hiện tên kệ, tên vật thể và nhãn chỉ dẫn tùy ý"
+              >
+                <Tag className="w-3.5 h-3.5 text-amber-400" />
+                <span>ẨN / HIỆN TÊN</span>
+                {(!showFacilityLabels || !showRackLabels || !showAnnotationLabels || !showPinBadge) && (
+                  <span className="w-2 h-2 rounded-full bg-amber-300 animate-ping" />
+                )}
+              </button>
+
+              {/* Dropdown Popover */}
+              {isLabelSettingsOpen && (
+                <div 
+                  className="absolute top-full mt-2 left-0 w-80 bg-slate-950/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl p-3.5 text-xs z-50 animate-in fade-in zoom-in-95 duration-150"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-800 mb-2.5">
+                    <div className="flex items-center gap-1.5 font-black text-slate-100">
+                      <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>CÀI ĐẶT HIỂN THỊ TÊN & NHÃN</span>
+                    </div>
+                    <button
+                      onClick={() => setIsLabelSettingsOpen(false)}
+                      className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {/* Toggle 1: Tên Vật Thể / Thiết Bị */}
+                    <label className="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🏢</span>
+                        <div>
+                          <div className="font-bold text-slate-200">Tên & Huy Hiệu Vật Thể</div>
+                          <div className="text-[10px] text-slate-400">Sàn Mezzanine, Kệ thùng 5S, Băng tải, AGV...</div>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={showFacilityLabels}
+                        onChange={(e) => setShowFacilityLabels(e.target.checked)}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-0 cursor-pointer accent-blue-500"
+                      />
+                    </label>
+
+                    {/* Toggle 2: Tên Dãy Kệ Hàng */}
+                    <label className="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">📦</span>
+                        <div>
+                          <div className="font-bold text-slate-200">Tên Dãy Kệ & Số Khoang</div>
+                          <div className="text-[10px] text-slate-400">Biển tên Kệ A, B, C và số khoang 01, 02...</div>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={showRackLabels}
+                        onChange={(e) => setShowRackLabels(e.target.checked)}
+                        className="w-4 h-4 rounded text-orange-600 focus:ring-0 cursor-pointer accent-orange-500"
+                      />
+                    </label>
+
+                    {/* Toggle 3: Nhãn Văn Bản Khu Vực */}
+                    <label className="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">📝</span>
+                        <div>
+                          <div className="font-bold text-slate-200">Nhãn Văn Bản Khu Vực</div>
+                          <div className="text-[10px] text-slate-400">Chữ chỉ dẫn 5S, Packing, Inbound, Outbound...</div>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={showAnnotationLabels}
+                        onChange={(e) => setShowAnnotationLabels(e.target.checked)}
+                        className="w-4 h-4 rounded text-cyan-600 focus:ring-0 cursor-pointer accent-cyan-500"
+                      />
+                    </label>
+
+                    {/* Toggle 4: Ghim Vị Trí Hiện Tại */}
+                    <label className="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">📍</span>
+                        <div>
+                          <div className="font-bold text-slate-200">Ghim Trạm "You Are Here"</div>
+                          <div className="text-[10px] text-slate-400">Biểu tượng định vị vị trí nhân viên / khách</div>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={showPinBadge}
+                        onChange={(e) => setShowPinBadge(e.target.checked)}
+                        className="w-4 h-4 rounded text-emerald-600 focus:ring-0 cursor-pointer accent-emerald-500"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="grid grid-cols-2 gap-2 mt-3 pt-2.5 border-t border-slate-800">
+                    <button
+                      onClick={() => {
+                        setShowFacilityLabels(false);
+                        setShowRackLabels(false);
+                        setShowAnnotationLabels(false);
+                        setShowPinBadge(false);
+                      }}
+                      className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg font-bold text-center transition-colors cursor-pointer"
+                    >
+                      Ẩn Tất Cả
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowFacilityLabels(true);
+                        setShowRackLabels(true);
+                        setShowAnnotationLabels(true);
+                        setShowPinBadge(true);
+                      }}
+                      className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-center transition-colors cursor-pointer"
+                    >
+                      Hiện Tất Cả
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right: Zoom & Reset Navigation */}
@@ -2273,10 +2441,10 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
                   }
                 }}
               >
-                {/* 1. SÀN GÁC LỬNG / MEZZANINE CANOPY 3D */}
+                {/* 1. SÀN GÁC LỬNG TRÊN NÓC DÃY KỆ (RACK-SUPPORTED MEZZANINE 3D - ẢNH 4) */}
                 {fac.type === 'mezzanine' && (() => {
-                  const w = fac.width || 30;
-                  const l = fac.length || 20;
+                  const w = fac.width || 36;
+                  const l = fac.length || 22;
                   const h = fac.height || 28;
 
                   const g1 = getFacPt(-w / 2, -l / 2, 0);
@@ -2289,73 +2457,424 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
                   const p3 = getFacPt(w / 2, l / 2, h);
                   const p4 = getFacPt(-w / 2, l / 2, h);
 
-                  const gMid1 = getFacPt(0, -l / 2, 0);
-                  const pMid1 = getFacPt(0, -l / 2, h);
-                  const gMid2 = getFacPt(0, l / 2, 0);
-                  const pMid2 = getFacPt(0, l / 2, h);
+                  const rh = h + 7.5; // Top Handrail Height
+                  const rhMid = h + 3.8; // Mid Handrail Height
 
-                  const rh = h + 6;
                   const r1 = getFacPt(-w / 2, -l / 2, rh);
                   const r2 = getFacPt(w / 2, -l / 2, rh);
                   const r3 = getFacPt(w / 2, l / 2, rh);
                   const r4 = getFacPt(-w / 2, l / 2, rh);
 
-                  return (
-                    <g>
-                      {/* Pillars */}
-                      <line x1={g1.x} y1={g1.y} x2={p1.x} y2={p1.y} stroke="#334155" strokeWidth="3" />
-                      <line x1={g2.x} y1={g2.y} x2={p2.x} y2={p2.y} stroke="#334155" strokeWidth="3" />
-                      <line x1={g3.x} y1={g3.y} x2={p3.x} y2={p3.y} stroke="#334155" strokeWidth="3" />
-                      <line x1={g4.x} y1={g4.y} x2={p4.x} y2={p4.y} stroke="#334155" strokeWidth="3" />
-                      <line x1={gMid1.x} y1={gMid1.y} x2={pMid1.x} y2={pMid1.y} stroke="#475569" strokeWidth="2" />
-                      <line x1={gMid2.x} y1={gMid2.y} x2={pMid2.x} y2={pMid2.y} stroke="#475569" strokeWidth="2" />
+                  const rMid1 = getFacPt(-w / 2, -l / 2, rhMid);
+                  const rMid2 = getFacPt(w / 2, -l / 2, rhMid);
+                  const rMid3 = getFacPt(w / 2, l / 2, rhMid);
+                  const rMid4 = getFacPt(-w / 2, l / 2, rhMid);
 
-                      {/* Main Platform Floor */}
+                  // 2 Parallel Rows of Racks Underneath Supporting the Mezzanine (Dãy Kệ Chân Dưới Sàn Lửng)
+                  const rackRows = [
+                    { uCenter: -w / 3.8, rowLabel: 'Dãy Kệ A (Chân sàn)' },
+                    { uCenter: w / 3.8, rowLabel: 'Dãy Kệ B (Chân sàn)' },
+                  ];
+
+                  return (
+                    <g id={`mezzanine-3d-${fac.id}`}>
+                      {/* Underneath Floor 5S Demarcation Aisle */}
+                      <polygon
+                        points={`${g1.x},${g1.y} ${g2.x},${g2.y} ${g3.x},${g3.y} ${g4.x},${g4.y}`}
+                        fill="#0f172a"
+                        fillOpacity="0.10"
+                        stroke="#94a3b8"
+                        strokeWidth="1.2"
+                        strokeDasharray="4 2"
+                      />
+
+                      {/* DÃY KỆ LƯU TRỮ CHỐNG ĐỠ DƯỚI CHÂN SÀN (RACK ROWS AS SUPPORTING FOUNDATION) */}
+                      <g id="under-mezzanine-rack-rows">
+                        {rackRows.map((row, rIdx) => {
+                          const rowW = 9; // Width of rack row
+                          const uLeft = row.uCenter - rowW / 2;
+                          const uRight = row.uCenter + rowW / 2;
+                          const baysCount = 4; // 4 khoang mỗi dãy kệ
+
+                          // Upright Posts along this rack row
+                          const bayVList = Array.from({ length: baysCount + 1 }).map((_, bi) => -l / 2 + bi * (l / baysCount));
+
+                          return (
+                            <g key={`rack-row-under-${rIdx}`}>
+                              {/* 1. Upright Vertical Blue/Slate Posts extending from floor to Mezzanine floor */}
+                              {bayVList.map((vPos, bi) => {
+                                const postFrontFloor = getFacPt(uLeft, vPos, 0);
+                                const postFrontTop = getFacPt(uLeft, vPos, h);
+                                const postBackFloor = getFacPt(uRight, vPos, 0);
+                                const postBackTop = getFacPt(uRight, vPos, h);
+
+                                return (
+                                  <g key={`posts-${rIdx}-${bi}`}>
+                                    {/* Back Post */}
+                                    <line x1={postBackFloor.x} y1={postBackFloor.y} x2={postBackTop.x} y2={postBackTop.y} stroke="#1e293b" strokeWidth="2.8" />
+                                    {/* Front Post */}
+                                    <line x1={postFrontFloor.x} y1={postFrontFloor.y} x2={postFrontTop.x} y2={postFrontTop.y} stroke="#2563eb" strokeWidth="3" strokeLinecap="square" />
+                                    <line x1={postFrontFloor.x} y1={postFrontFloor.y} x2={postFrontTop.x} y2={postFrontTop.y} stroke="#60a5fa" strokeWidth="1.2" strokeDasharray="4 4" />
+                                    
+                                    {/* Bracing between front & back post */}
+                                    <line x1={postFrontFloor.x} y1={postFrontFloor.y + 4} x2={postBackTop.x} y2={postBackTop.y - 4} stroke="#475569" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+                                  </g>
+                                );
+                              })}
+
+                              {/* 2. Horizontal Orange Load Beams & Dense Full Cargo on 2 Tiers (Tràn đầy ắp hàng hóa 2 tầng kệ dưới chân sàn) */}
+                              {[h * 0.35, h * 0.7].map((beamH, tIdx) => {
+                                return Array.from({ length: baysCount }).map((_, bi) => {
+                                  const vStart = bayVList[bi];
+                                  const vEnd = bayVList[bi + 1];
+
+                                  const bf1 = getFacPt(uLeft, vStart, beamH);
+                                  const bf2 = getFacPt(uLeft, vEnd, beamH);
+                                  const bb1 = getFacPt(uRight, vStart, beamH);
+                                  const bb2 = getFacPt(uRight, vEnd, beamH);
+
+                                  return (
+                                    <g key={`beam-tier-${rIdx}-${tIdx}-${bi}`}>
+                                      {/* Shelf Deck Plane */}
+                                      <polygon
+                                        points={`${bf1.x},${bf1.y} ${bf2.x},${bf2.y} ${bb2.x},${bb2.y} ${bb1.x},${bb1.y}`}
+                                        fill="#cbd5e1"
+                                        stroke="#94a3b8"
+                                        strokeWidth="0.8"
+                                        opacity="0.95"
+                                      />
+                                      {/* Front Orange Load Beam (Thanh dầm cam) */}
+                                      <line x1={bf1.x} y1={bf1.y} x2={bf2.x} y2={bf2.y} stroke="#ea580c" strokeWidth="2.8" strokeLinecap="round" />
+                                      {/* Back Orange Load Beam */}
+                                      <line x1={bb1.x} y1={bb1.y} x2={bb2.x} y2={bb2.y} stroke="#c2410c" strokeWidth="2.2" />
+
+                                      {/* DENSE GOODS / TRÀN KỆ HÀNG HOÁ: 2 PALLETS ĐẦY MỖI KHOANG (16 pallets / 32 kiện hàng mỗi sàn lửng) */}
+                                      {[0.28, 0.72].map((slotFrac, sIdx) => {
+                                        const vSlot = vStart + (vEnd - vStart) * slotFrac;
+                                        const itemPt = getFacPt(row.uCenter, vSlot, beamH + 0.8);
+                                        const cargoType = (rIdx * 3 + tIdx * 2 + bi + sIdx) % 3;
+
+                                        return (
+                                          <g key={`cargo-${rIdx}-${tIdx}-${bi}-${sIdx}`} transform={`translate(${itemPt.x}, ${itemPt.y})`}>
+                                            {/* Wooden Pallet Base */}
+                                            <rect x="-6" y="-2.2" width="12" height="2.4" rx="0.4" fill="#b45309" stroke="#78350f" strokeWidth="0.5" />
+                                            <line x1="-6" y1="-1" x2="6" y2="-1" stroke="#78350f" strokeWidth="0.4" />
+
+                                            {cargoType === 0 ? (
+                                              /* Double stacked heavy cardboard cartons with tape */
+                                              <g>
+                                                <polygon points="-5.5,-8.5 5.5,-8.5 6.5,-2.2 -4.5,-2.2" fill="#d97706" stroke="#78350f" strokeWidth="0.5" />
+                                                <rect x="-5.5" y="-6.5" width="11" height="4.5" rx="0.8" fill="#b45309" stroke="#451a03" strokeWidth="0.5" />
+                                                <rect x="-2" y="-5" width="4" height="1.8" rx="0.3" fill="#ffffff" />
+                                                <line x1="-1.5" y1="-4.1" x2="1.5" y2="-4.1" stroke="#0f172a" strokeWidth="0.4" />
+                                              </g>
+                                            ) : cargoType === 1 ? (
+                                              /* Industrial blue/cyan parts tote container */
+                                              <g>
+                                                <polygon points="-5.5,-7.5 5.5,-7.5 6.2,-2.2 -4.8,-2.2" fill="#0284c7" stroke="#0369a1" strokeWidth="0.5" />
+                                                <rect x="-5.5" y="-5.8" width="11" height="3.8" rx="0.8" fill="#0369a1" stroke="#082f49" strokeWidth="0.5" />
+                                                <rect x="-2" y="-4.2" width="4" height="1.5" rx="0.3" fill="#38bdf8" />
+                                              </g>
+                                            ) : (
+                                              /* Shrink-wrapped white pallet cargo load */
+                                              <g>
+                                                <polygon points="-5.5,-9.5 5.5,-9.5 6.2,-2.2 -4.8,-2.2" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.5" />
+                                                <rect x="-5.5" y="-7.5" width="11" height="5.5" rx="0.8" fill="#cbd5e1" stroke="#475569" strokeWidth="0.5" />
+                                                <rect x="-3" y="-5.5" width="6" height="2" rx="0.3" fill="#22c55e" />
+                                                <line x1="-5.5" y1="-5.5" x2="5.5" y2="-5.5" stroke="#334155" strokeWidth="0.6" />
+                                              </g>
+                                            )}
+                                          </g>
+                                        );
+                                      })}
+                                    </g>
+                                  );
+                                });
+                              })}
+                            </g>
+                          );
+                        })}
+                      </g>
+
+                      {/* Main Mezzanine Walkway Platform Deck (Mặt sàn gác lửng nằm trên nóc các dãy kệ) */}
                       <polygon
                         points={`${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y} ${p4.x},${p4.y}`}
-                        fill={fac.color || '#f8fafc'}
-                        fillOpacity="0.88"
-                        stroke={isBeingEdited ? '#f59e0b' : '#0284c7'}
-                        strokeWidth={isBeingEdited ? 3 : 1.8}
+                        fill={fac.color || '#e2e8f0'}
+                        fillOpacity="0.95"
+                        stroke={isBeingEdited ? '#f59e0b' : '#334155'}
+                        strokeWidth={isBeingEdited ? 3 : 2}
                         filter="url(#shadow3d)"
                       />
 
-                      {/* Floor Grid */}
-                      <line x1={(p1.x + p4.x)/2} y1={(p1.y + p4.y)/2} x2={(p2.x + p3.x)/2} y2={(p2.y + p3.y)/2} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3 3" />
-                      <line x1={(p1.x + p2.x)/2} y1={(p1.y + p2.y)/2} x2={(p4.x + p3.x)/2} y2={(p4.y + p3.y)/2} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3 3" />
+                      {/* Metal Deck Walkway Texture Grid */}
+                      <line x1={(p1.x + p4.x)/2} y1={(p1.y + p4.y)/2} x2={(p2.x + p3.x)/2} y2={(p2.y + p3.y)/2} stroke="#94a3b8" strokeWidth="1" strokeDasharray="4 4" />
+                      <line x1={(p1.x + p2.x)/2} y1={(p1.y + p2.y)/2} x2={(p4.x + p3.x)/2} y2={(p4.y + p3.y)/2} stroke="#94a3b8" strokeWidth="1" strokeDasharray="4 4" />
 
-                      {/* Yellow Handrails */}
-                      <polyline points={`${r1.x},${r1.y} ${r2.x},${r2.y} ${r3.x},${r3.y} ${r4.x},${r4.y}`} fill="none" stroke="#facc15" strokeWidth="2" />
-                      <line x1={p1.x} y1={p1.y} x2={r1.x} y2={r1.y} stroke="#facc15" strokeWidth="1.5" />
-                      <line x1={p2.x} y1={p2.y} x2={r2.x} y2={r2.y} stroke="#facc15" strokeWidth="1.5" />
-                      <line x1={p3.x} y1={p3.y} x2={r3.x} y2={r3.y} stroke="#facc15" strokeWidth="1.5" />
-                      <line x1={p4.x} y1={p4.y} x2={r4.x} y2={r4.y} stroke="#facc15" strokeWidth="1.5" />
+                      {/* Full-Perimeter Vertical-Picket Safety Handrail (Lan can bảo vệ hoa sắt dọc màu trắng bạc như Ảnh 4) */}
+                      <g id="mezzanine-safety-handrails">
+                        {/* Top Rail Tube */}
+                        <polyline points={`${r1.x},${r1.y} ${r2.x},${r2.y} ${r3.x},${r3.y} ${r4.x},${r4.y} ${r1.x},${r1.y}`} fill="none" stroke="#cbd5e1" strokeWidth="2.5" />
+                        {/* Mid Knee Rail Tube */}
+                        <polyline points={`${rMid1.x},${rMid1.y} ${rMid2.x},${rMid2.y} ${rMid3.x},${rMid3.y} ${rMid4.x},${rMid4.y} ${rMid1.x},${rMid1.y}`} fill="none" stroke="#94a3b8" strokeWidth="1.6" />
 
-                      {/* Stairs */}
+                        {/* Handrail Main Corner Posts */}
+                        <line x1={p1.x} y1={p1.y} x2={r1.x} y2={r1.y} stroke="#475569" strokeWidth="2.5" />
+                        <line x1={p2.x} y1={p2.y} x2={r2.x} y2={r2.y} stroke="#475569" strokeWidth="2.5" />
+                        <line x1={p3.x} y1={p3.y} x2={r3.x} y2={r3.y} stroke="#475569" strokeWidth="2.5" />
+                        <line x1={p4.x} y1={p4.y} x2={r4.x} y2={r4.y} stroke="#475569" strokeWidth="2.5" />
+
+                        {/* Dense Vertical Slat Pickets Along Rails (Lan can chấn song sắt như Ảnh 4) */}
+                        {Array.from({ length: 8 }).map((_, si) => {
+                          const frac = (si + 1) / 9;
+                          const botPt = { x: p1.x + (p2.x - p1.x) * frac, y: p1.y + (p2.y - p1.y) * frac };
+                          const topPt = { x: r1.x + (r2.x - r1.x) * frac, y: r1.y + (r2.y - r1.y) * frac };
+                          return <line key={`picket-f-${si}`} x1={botPt.x} y1={botPt.y} x2={topPt.x} y2={topPt.y} stroke="#e2e8f0" strokeWidth="1.2" />;
+                        })}
+                        {Array.from({ length: 5 }).map((_, si) => {
+                          const frac = (si + 1) / 6;
+                          const botPt = { x: p2.x + (p3.x - p2.x) * frac, y: p2.y + (p3.y - p2.y) * frac };
+                          const topPt = { x: r2.x + (r3.x - r2.x) * frac, y: r2.y + (r3.y - r2.y) * frac };
+                          return <line key={`picket-r-${si}`} x1={botPt.x} y1={botPt.y} x2={topPt.x} y2={topPt.y} stroke="#e2e8f0" strokeWidth="1.2" />;
+                        })}
+                        {Array.from({ length: 8 }).map((_, si) => {
+                          const frac = (si + 1) / 9;
+                          const botPt = { x: p4.x + (p3.x - p4.x) * frac, y: p4.y + (p3.y - p4.y) * frac };
+                          const topPt = { x: r4.x + (r3.x - r4.x) * frac, y: r4.y + (r3.y - r4.y) * frac };
+                          return <line key={`picket-b-${si}`} x1={botPt.x} y1={botPt.y} x2={topPt.x} y2={topPt.y} stroke="#e2e8f0" strokeWidth="1.2" />;
+                        })}
+                      </g>
+
+                      {/* Industrial Access Steel Staircase (Cầu thang thép công nghiệp lên sàn lửng) */}
                       {fac.hasStairs !== false && (() => {
                         const sTop = getFacPt(-w / 2, 0, h);
-                        const sBot = getFacPt(-w / 2 - 6, 0, 0);
+                        const sBot = getFacPt(-w / 2 - 8, 0, 0);
+                        const sTopRail = getFacPt(-w / 2, 0, h + 7.5);
+                        const sBotRail = getFacPt(-w / 2 - 8, 0, 7.5);
+
                         return (
-                          <g>
-                            <line x1={sBot.x} y1={sBot.y} x2={sTop.x} y2={sTop.y} stroke="#0284c7" strokeWidth="3" />
-                            <line x1={sBot.x + 3} y1={sBot.y + 2} x2={sTop.x + 3} y2={sTop.y + 2} stroke="#0284c7" strokeWidth="3" />
-                            {Array.from({ length: 5 }).map((_, stepI) => {
-                              const ratio = (stepI + 1) / 6;
-                              const stepPt = getFacPt(-w / 2 - 6 + 6 * ratio, 0, h * ratio);
-                              return <line key={`st-${fac.id}-${stepI}`} x1={stepPt.x - 2} y1={stepPt.y} x2={stepPt.x + 4} y2={stepPt.y} stroke="#f1f5f9" strokeWidth="1.5" />;
+                          <g id="industrial-mezzanine-stairs">
+                            {/* Stair Stringers */}
+                            <line x1={sBot.x} y1={sBot.y} x2={sTop.x} y2={sTop.y} stroke="#334155" strokeWidth="4" />
+                            <line x1={sBot.x + 4} y1={sBot.y + 2} x2={sTop.x + 4} y2={sTop.y + 2} stroke="#334155" strokeWidth="4" />
+                            {/* Stair Handrails */}
+                            <line x1={sBotRail.x} y1={sBotRail.y} x2={sTopRail.x} y2={sTopRail.y} stroke="#cbd5e1" strokeWidth="2" />
+                            <line x1={sBot.x} y1={sBot.y} x2={sBotRail.x} y2={sBotRail.y} stroke="#475569" strokeWidth="2" />
+                            <line x1={sTop.x} y1={sTop.y} x2={sTopRail.x} y2={sTopRail.y} stroke="#475569" strokeWidth="2" />
+
+                            {/* 7 Anti-Slip Metal Step Treads (Bậc thang dập gân) */}
+                            {Array.from({ length: 7 }).map((_, stepI) => {
+                              const ratio = (stepI + 1) / 8;
+                              const stepPt = getFacPt(-w / 2 - 8 + 8 * ratio, 0, h * ratio);
+                              return (
+                                <g key={`stair-step-${stepI}`}>
+                                  <line x1={stepPt.x - 3} y1={stepPt.y} x2={stepPt.x + 5} y2={stepPt.y} stroke="#f8fafc" strokeWidth="2.5" />
+                                  <line x1={stepPt.x - 3} y1={stepPt.y} x2={stepPt.x + 5} y2={stepPt.y} stroke="#0284c7" strokeWidth="1" />
+                                </g>
+                              );
                             })}
                           </g>
                         );
                       })()}
 
-                      {/* Label Badge */}
-                      {(() => {
-                        const lblPos = getFacPt(0, 0, h + 14);
+                      {/* Mezzanine Information Badge */}
+                      {(isStudioPhotoMode ? showLabelsInStudio : showFacilityLabels) && (() => {
+                        const lblPos = getFacPt(0, 0, h + 15);
                         return (
                           <g transform={`translate(${lblPos.x}, ${lblPos.y})`}>
-                            <rect x="-65" y="-10" width="130" height="20" rx="5" fill="#0f172a" stroke="#38bdf8" strokeWidth="1.5" filter="url(#shadow3d)" />
-                            <text x="0" y="3" fill="#38bdf8" fontSize="7.5" fontWeight="900" textAnchor="middle">
+                            <rect x="-75" y="-11" width="150" height="22" rx="6" fill="#0f172a" stroke="#38bdf8" strokeWidth="1.8" filter="url(#shadow3d)" />
+                            <text x="0" y="4" fill="#38bdf8" fontSize="8" fontWeight="900" textAnchor="middle">
                               🏢 {fac.name.toUpperCase()}
+                            </text>
+                          </g>
+                        );
+                      })()}
+                    </g>
+                  );
+                })()}
+
+                {/* 1.1 KỆ THÉP HỘP KẼM HÀN BASIC ĐỂ THÙNG NHỰA 5S (ẢNH 3) */}
+                {fac.type === 'bin_rack' && (() => {
+                  const w = fac.width || 8;
+                  const l = fac.length || 24;
+                  const h = fac.height || 16;
+                  const tiersCount = fac.tiersCount || 2; // 2 tầng cơ bản như Ảnh 3
+
+                  const g1 = getFacPt(-w / 2, -l / 2, 0);
+                  const g2 = getFacPt(w / 2, -l / 2, 0);
+                  const g3 = getFacPt(w / 2, l / 2, 0);
+                  const g4 = getFacPt(-w / 2, l / 2, 0);
+
+                  // Galvanized Square Steel Tube Colors (Sắt hộp mạ kẽm hàn)
+                  const steelColor = '#cbd5e1'; // Bright zinc metallic
+                  const steelBorder = '#64748b'; // Welded joint outline
+                  const steelShadow = '#94a3b8';
+
+                  return (
+                    <g id={`bin-rack-3d-${fac.id}`}>
+                      {/* 1. Yellow 5S Perimeter Safety Floor Boundary (Vạch sơn vàng 5S như Ảnh 3) */}
+                      <polygon
+                        points={`${g1.x},${g1.y} ${g2.x},${g2.y} ${g3.x},${g3.y} ${g4.x},${g4.y}`}
+                        fill="#fef08a"
+                        fillOpacity="0.25"
+                        stroke={isBeingEdited ? '#f59e0b' : '#eab308'}
+                        strokeWidth={isBeingEdited ? 3 : 2}
+                        strokeDasharray="4 2"
+                      />
+
+                      {/* 2. Yellow Directional Navigation Floor Arrow (Mũi tên vàng chỉ hướng như Ảnh 3) */}
+                      {fac.hasFloorArrow !== false && (() => {
+                        const arrowPt = getFacPt(w / 2 + 4, 0, 0);
+                        return (
+                          <g transform={`translate(${arrowPt.x}, ${arrowPt.y})`}>
+                            <polygon 
+                              points="-12,-4 0,-4 0,-8 10,0 0,8 0,4 -12,4" 
+                              fill="#eab308" 
+                              stroke="#854d0e" 
+                              strokeWidth="1.2" 
+                              filter="url(#shadow3d)" 
+                            />
+                          </g>
+                        );
+                      })()}
+
+                      {/* 3. KHUNG THÉP HỘP MẠ KẼM HÀN BASIC CƠ BẢN (GALVANIZED SQUARE STEEL TUBE WELDED FRAME) */}
+                      <g id="galvanized-steel-welded-frame">
+                        {/* 6 Vertical Galvanized Steel Tube Legs (6 Chân trụ sắt hộp kẽm 30x30 / 40x40 hàn đứng) */}
+                        {[-w / 2, w / 2].map((uPos, uI) =>
+                          [-l / 2, 0, l / 2].map((vPos, vI) => {
+                            const pFloor = getFacPt(uPos, vPos, 0);
+                            const pTop = getFacPt(uPos, vPos, h);
+                            return (
+                              <g key={`post-zinc-${uI}-${vI}`}>
+                                {/* Outer welded tube contour */}
+                                <line 
+                                  x1={pFloor.x} 
+                                  y1={pFloor.y} 
+                                  x2={pTop.x} 
+                                  y2={pTop.y} 
+                                  stroke={steelBorder} 
+                                  strokeWidth="3.2" 
+                                  strokeLinecap="square" 
+                                />
+                                {/* Zinc metallic shiny core */}
+                                <line 
+                                  x1={pFloor.x} 
+                                  y1={pFloor.y} 
+                                  x2={pTop.x} 
+                                  y2={pTop.y} 
+                                  stroke={steelColor} 
+                                  strokeWidth="1.8" 
+                                  strokeLinecap="square" 
+                                />
+                                {/* Welded base foot plate */}
+                                <circle cx={pFloor.x} cy={pFloor.y} r="2.2" fill="#475569" stroke="#94a3b8" strokeWidth="0.8" />
+                              </g>
+                            );
+                          })
+                        )}
+
+                        {/* Top horizontal perimeter galvanized steel tubes (Thanh giằng ngang sắt hộp trên cùng) */}
+                        {(() => {
+                          const t1 = getFacPt(-w / 2, -l / 2, h);
+                          const t2 = getFacPt(w / 2, -l / 2, h);
+                          const t3 = getFacPt(w / 2, l / 2, h);
+                          const t4 = getFacPt(-w / 2, l / 2, h);
+                          return (
+                            <polygon 
+                              points={`${t1.x},${t1.y} ${t2.x},${t2.y} ${t3.x},${t3.y} ${t4.x},${t4.y}`} 
+                              fill="none" 
+                              stroke={steelBorder} 
+                              strokeWidth="2.5" 
+                            />
+                          );
+                        })()}
+                      </g>
+
+                      {/* 4. 2 TẦNG ĐẶT THÙNG NHỰA XANH CHI CHÍT (DENSE HIGH-CAPACITY PLASTIC TOTES - 32 THÙNG NHỰA) */}
+                      {Array.from({ length: tiersCount }).map((_, tI) => {
+                        const tierH = ((tI + 1) / tiersCount) * (h - 2);
+                        const s1 = getFacPt(-w / 2, -l / 2, tierH);
+                        const s2 = getFacPt(w / 2, -l / 2, tierH);
+                        const s3 = getFacPt(w / 2, l / 2, tierH);
+                        const s4 = getFacPt(-w / 2, l / 2, tierH);
+
+                        const binsPerRow = 8; // 8 thùng mỗi hàng => 16 thùng mỗi tầng => 32 thùng chi chít
+
+                        return (
+                          <g key={`tier-zinc-${tI}`}>
+                            {/* Horizontal Welded Zinc Tube Shelf Frame (Khung giằng sắt hộp mạ kẽm của tầng) */}
+                            <polygon
+                              points={`${s1.x},${s1.y} ${s2.x},${s2.y} ${s3.x},${s3.y} ${s4.x},${s4.y}`}
+                              fill="#f1f5f9"
+                              fillOpacity="0.85"
+                              stroke={steelBorder}
+                              strokeWidth="2"
+                            />
+                            {/* Middle support cross tube */}
+                            <line 
+                              x1={(s1.x + s2.x)/2} 
+                              y1={(s1.y + s2.y)/2} 
+                              x2={(s4.x + s3.x)/2} 
+                              y2={(s4.y + s3.y)/2} 
+                              stroke={steelShadow} 
+                              strokeWidth="1.6" 
+                            />
+
+                            {/* 2 Parallel Dense Rows of Navy Blue Plastic Tote Bins (2 dãy thùng nhựa xếp chi chít kín tầng) */}
+                            {[-w / 3.4, w / 3.4].map((binU, rowIdx) =>
+                              Array.from({ length: binsPerRow }).map((_, binIdx) => {
+                                const binV = -l / 2 + 1.8 + binIdx * ((l - 3.6) / (binsPerRow - 1));
+                                const bPt = getFacPt(binU, binV, tierH + 1);
+                                const isAlt = (binIdx + rowIdx + tI) % 2 === 0;
+                                const topColor = isAlt ? '#2563eb' : '#1d4ed8';
+                                const frontColor = isAlt ? '#1e40af' : '#1e3a8a';
+
+                                return (
+                                  <g key={`bin-${tI}-${rowIdx}-${binIdx}`} transform={`translate(${bPt.x}, ${bPt.y})`}>
+                                    {/* 3D Navy Blue Storage Tote Box */}
+                                    <polygon points="-4.5,-3.5 4.5,-3.5 5.5,-1 -3.5,-1" fill={topColor} stroke="#172554" strokeWidth="0.6" />
+                                    <rect x="-4.5" y="-1" width="9" height="6.5" rx="1.2" fill={frontColor} stroke="#0f172a" strokeWidth="0.6" filter="url(#shadow3d)" />
+                                    {/* Molded Front Grip & White Barcode Tag */}
+                                    <rect x="-2.2" y="0.4" width="4.4" height="1.6" rx="0.4" fill="#0f172a" opacity="0.6" />
+                                    <rect x="-2.5" y="2.6" width="5" height="1.8" rx="0.4" fill="#ffffff" />
+                                    <line x1="-1.8" y1="3.5" x2="1.8" y2="3.5" stroke="#0f172a" strokeWidth="0.4" />
+                                  </g>
+                                );
+                              })
+                            )}
+                          </g>
+                        );
+                      })}
+
+                      {/* 5. Red 5S Andon Management Head Board (Bảng Andon tôn đỏ hàn gắn đầu kệ với 3 đèn 🟢 ⚪ 🟡 như Ảnh 3) */}
+                      {fac.hasAndonBoard !== false && (() => {
+                        const andonPt = getFacPt(-w / 2 - 1, -l / 2, h / 2 + 2);
+                        return (
+                          <g transform={`translate(${andonPt.x}, ${andonPt.y})`} filter="url(#shadow3d)">
+                            {/* Red Signboard */}
+                            <rect x="-8" y="-18" width="16" height="36" rx="2.5" fill="#dc2626" stroke="#991b1b" strokeWidth="1.2" />
+                            <rect x="-7" y="-17" width="14" height="6" rx="1" fill="#7f1d1d" />
+                            <text x="0" y="-13" fill="#ffffff" fontSize="4.5" fontWeight="900" textAnchor="middle">5S</text>
+
+                            {/* 3 Status Signal Lights: Green, White, Yellow (Ảnh 3) */}
+                            <circle cx="0" cy="-6" r="2.4" fill="#22c55e" stroke="#14532d" strokeWidth="0.6" />
+                            <circle cx="0" cy="0" r="2.4" fill="#f8fafc" stroke="#64748b" strokeWidth="0.6" />
+                            <circle cx="0" cy="6" r="2.4" fill="#facc15" stroke="#78350f" strokeWidth="0.6" />
+                            
+                            <line x1="-6" y1="10" x2="6" y2="10" stroke="#ffffff" strokeWidth="0.5" opacity="0.7" />
+                            <text x="0" y="14" fill="#fef08a" fontSize="3.8" fontWeight="bold" textAnchor="middle">BIN</text>
+                          </g>
+                        );
+                      })()}
+
+                      {/* Label Badge */}
+                      {(isStudioPhotoMode ? showLabelsInStudio : showFacilityLabels) && (() => {
+                        const lblPos = getFacPt(0, 0, h + 10);
+                        return (
+                          <g transform={`translate(${lblPos.x}, ${lblPos.y})`}>
+                            <rect x="-65" y="-10" width="130" height="20" rx="5" fill="#1e3a8a" stroke="#60a5fa" strokeWidth="1.4" filter="url(#shadow3d)" />
+                            <text x="0" y="3" fill="#ffffff" fontSize="7.5" fontWeight="900" textAnchor="middle">
+                              📥 {fac.name}
                             </text>
                           </g>
                         );
@@ -2411,7 +2930,7 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
                       />
 
                       {/* Label Badge */}
-                      {(() => {
+                      {(isStudioPhotoMode ? showLabelsInStudio : showFacilityLabels) && (() => {
                         const lblPos = getFacPt(0, 0, h + 10);
                         return (
                           <g transform={`translate(${lblPos.x}, ${lblPos.y})`}>
@@ -2459,7 +2978,7 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
                         return <line key={`roller-${fac.id}-${rIdx}`} x1={rp1.x} y1={rp1.y} x2={rp2.x} y2={rp2.y} stroke="#94a3b8" strokeWidth="1.8" />;
                       })}
 
-                      {(() => {
+                      {(isStudioPhotoMode ? showLabelsInStudio : showFacilityLabels) && (() => {
                         const lblPos = getFacPt(0, 0, h + 12);
                         return (
                           <g transform={`translate(${lblPos.x}, ${lblPos.y})`}>
@@ -2496,7 +3015,7 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
                       />
                       <circle cx={(a1.x + a3.x)/2} cy={(a1.y + a3.y)/2 - 4} r="3" fill="#ef4444" filter="url(#yellowGlow)" />
 
-                      {(() => {
+                      {(isStudioPhotoMode ? showLabelsInStudio : showFacilityLabels) && (() => {
                         const lblPos = getFacPt(0, 0, h + 12);
                         return (
                           <g transform={`translate(${lblPos.x}, ${lblPos.y})`}>
@@ -2541,7 +3060,7 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
                       <line x1={p2.x} y1={p2.y} x2={getFacPt(w / 2, -l / 2, h + 12).x} y2={getFacPt(w / 2, -l / 2, h + 12).y} stroke="#0f172a" strokeWidth="2" />
                       <line x1={getFacPt(-w / 2, -l / 2, h + 10).x} y1={getFacPt(-w / 2, -l / 2, h + 10).y} x2={getFacPt(w / 2, -l / 2, h + 10).x} y2={getFacPt(w / 2, -l / 2, h + 10).y} stroke="#f59e0b" strokeWidth="1.5" />
 
-                      {(() => {
+                      {(isStudioPhotoMode ? showLabelsInStudio : showFacilityLabels) && (() => {
                         const lblPos = getFacPt(0, 0, h + 16);
                         return (
                           <g transform={`translate(${lblPos.x}, ${lblPos.y})`}>
@@ -2567,7 +3086,7 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
                   const p4 = getFacPt(-w / 2, l / 2, 0);
                   const pt1 = getFacPt(-w / 2, -l / 2, 8);
                   const pt2 = getFacPt(w / 2, -l / 2, 8);
-                  const pt3 = getFacPt(w / 2, l / 2, 8);
+                  const pt3 = getFacPt(w / 2, l / 8, 8);
                   const pt4 = getFacPt(-w / 2, l / 2, 8);
 
                   return (
@@ -2605,9 +3124,11 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
                         stroke={isBeingEdited ? '#f59e0b' : '#0284c7'}
                         strokeWidth={isBeingEdited ? 3 : 1.5}
                       />
-                      <text x={(d1.x + dt2.x) / 2} y={(d1.y + dt2.y) / 2} fill="#38bdf8" fontSize="7.5" fontWeight="bold" textAnchor="middle">
-                        🚪 {fac.name}
-                      </text>
+                      {(isStudioPhotoMode ? showLabelsInStudio : showFacilityLabels) && (
+                        <text x={(d1.x + dt2.x) / 2} y={(d1.y + dt2.y) / 2} fill="#38bdf8" fontSize="7.5" fontWeight="bold" textAnchor="middle">
+                          🚪 {fac.name}
+                        </text>
+                      )}
                     </g>
                   );
                 })()}
@@ -2866,7 +3387,7 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
                       })}
 
                       {/* Small Bay Number Badge at bottom */}
-                      {(() => {
+                      {(isStudioPhotoMode ? showLabelsInStudio : showRackLabels) && (() => {
                         const lblPt = getRackPt(rackWidth / 2 + 1.2, bayVLocal + bayLength / 2, 4);
                         return (
                           <g transform={`translate(${lblPt.x}, ${lblPt.y})`}>
@@ -2896,7 +3417,7 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
                 })()}
 
                 {/* 3D Header Aisle Banner on top */}
-                {(() => {
+                {(isStudioPhotoMode ? showLabelsInStudio : showRackLabels) && (() => {
                   const topCenter = getRackPt(0, totalLength / 2, 60);
                   return (
                     <g 
@@ -3004,6 +3525,9 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
         <g id="map-text-annotations">
           {annotations.map((ann) => {
             const isSelected = selectedTarget?.type === 'annotation' && selectedTarget.id === ann.id;
+            const isAnnVisible = (isStudioPhotoMode ? showLabelsInStudio : showAnnotationLabels) || (isEditMode && isSelected);
+            if (!isAnnVisible) return null;
+
             const pos = toIso(ann.x, ann.y, 0);
             const approxTextWidth = Math.max(60, (ann.textVi.length * (ann.fontSize || 12)) * 0.65);
             const boxHeight = (ann.fontSize || 12) * (ann.textEn ? 2.4 : 1.6);
@@ -3155,37 +3679,39 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
         </g>
 
         {/* 6. "YOU ARE HERE" PIN (ĐIỂM XANH CHỈ DẪN VỊ TRÍ - CHO PHÉP BẤM & KÉO RÊ THẢ) */}
-        <g 
-          id="you-are-here-pin" 
-          transform={`translate(${currentPinIso.x}, ${currentPinIso.y})`}
-          className={`${isDraggingPin ? 'cursor-grabbing scale-110' : 'cursor-grab hover:scale-110'} transition-transform duration-100`}
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            setIsDraggingPin(true);
-          }}
-        >
-          <circle cx="0" cy="0" r="32" fill="url(#pinGlow)" className="animate-pulse" />
-          <ellipse cx="0" cy="0" rx="14" ry="7" fill="#0284c7" fillOpacity="0.6" />
-          
-          <g transform="translate(0, -32)">
-            <path
-              d="M 0 -22 C -11 -22 -18 -13 -18 -2 C -18 10 0 24 0 24 C 0 24 18 10 18 -2 C 18 -13 11 -22 0 -22 Z"
-              fill="#0284c7"
-              stroke="#38bdf8"
-              strokeWidth="2.5"
-              filter="url(#shadow3d)"
-            />
-            <circle cx="0" cy="-3" r="6.5" fill="#ffffff" />
-            <circle cx="0" cy="-3" r="3.5" fill="#0284c7" />
-
+        {(isStudioPhotoMode ? showPinInStudio : showPinBadge) && (
+          <g 
+            id="you-are-here-pin" 
+            transform={`translate(${currentPinIso.x}, ${currentPinIso.y})`}
+            className={`${isDraggingPin ? 'cursor-grabbing scale-110' : 'cursor-grab hover:scale-110'} transition-transform duration-100`}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setIsDraggingPin(true);
+            }}
+          >
+            <circle cx="0" cy="0" r="32" fill="url(#pinGlow)" className="animate-pulse" />
+            <ellipse cx="0" cy="0" rx="14" ry="7" fill="#0284c7" fillOpacity="0.6" />
+            
             <g transform="translate(0, -32)">
-              <rect x="-60" y="-12" width="120" height="24" rx="12" fill="#0f172a" stroke={isDraggingPin ? '#facc15' : '#38bdf8'} strokeWidth="2" />
-              <text x="0" y="4" fill={isDraggingPin ? '#facc15' : '#38bdf8'} fontSize="8.5" fontWeight="900" textAnchor="middle" letterSpacing="0.5">
-                {isDraggingPin ? '✊ ĐANG KÉO VỊ TRÍ' : '📍 VỊ TRÍ CỦA BẠN'}
-              </text>
+              <path
+                d="M 0 -22 C -11 -22 -18 -13 -18 -2 C -18 10 0 24 0 24 C 0 24 18 10 18 -2 C 18 -13 11 -22 0 -22 Z"
+                fill="#0284c7"
+                stroke="#38bdf8"
+                strokeWidth="2.5"
+                filter="url(#shadow3d)"
+              />
+              <circle cx="0" cy="-3" r="6.5" fill="#ffffff" />
+              <circle cx="0" cy="-3" r="3.5" fill="#0284c7" />
+
+              <g transform="translate(0, -32)">
+                <rect x="-60" y="-12" width="120" height="24" rx="12" fill="#0f172a" stroke={isDraggingPin ? '#facc15' : '#38bdf8'} strokeWidth="2" />
+                <text x="0" y="4" fill={isDraggingPin ? '#facc15' : '#38bdf8'} fontSize="8.5" fontWeight="900" textAnchor="middle" letterSpacing="0.5">
+                  {isDraggingPin ? '✊ ĐANG KÉO VỊ TRÍ' : '📍 VỊ TRÍ CỦA BẠN'}
+                </text>
+              </g>
             </g>
           </g>
-        </g>
+        )}
       </svg>
 
       {/* FLOATING MANUAL D-PAD DIRECTIONAL CONTROLLER (IMAGE 2 STYLE) */}
