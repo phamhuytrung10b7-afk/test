@@ -274,7 +274,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   const tab5BayNumbers = pdf4Config?.bayNumbers || ['01', '02', '03', '04', '05'];
   const tab5ItemsPerBay = pdf4Config?.itemsPerBay || 2;
   const [tab5Layout, setTab5Layout] = useState<'10_per_page' | '4_per_page' | '2_per_page' | '1_per_page'>('10_per_page');
-  const [tab5SelectedTiers, setTab5SelectedTiers] = useState<number[]>(tab5TierCount === 4 ? [4, 3, 2, 1] : [3, 2, 1]);
+  const [tab5SelectedTiers, setTab5SelectedTiers] = useState<number[]>(tab5TierCount === 4 ? [1, 2, 3, 4] : [1, 2, 3]);
   const [tab5Cards, setTab5Cards] = useState<Array<{
     id: string;
     bay: string;
@@ -285,7 +285,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   }>>([]);
 
   useEffect(() => {
-    setTab5SelectedTiers(tab5TierCount === 4 ? [4, 3, 2, 1] : [3, 2, 1]);
+    setTab5SelectedTiers(tab5TierCount === 4 ? [1, 2, 3, 4] : [1, 2, 3]);
   }, [tab5TierCount, activeRackId]);
 
   useEffect(() => {
@@ -300,9 +300,9 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
         qrDataUrl?: string;
       }> = [];
 
-      const sortedTiers = [...tab5SelectedTiers].sort((a, b) => b - a);
-      for (const t of sortedTiers) {
-        for (const b of tab5BayNumbers) {
+      const sortedTiers = [...tab5SelectedTiers].sort((a, b) => a - b);
+      for (const b of tab5BayNumbers) {
+        for (const t of sortedTiers) {
           for (let s = 1; s <= tab5ItemsPerBay; s++) {
             const key = `${activeRackId}-${b}-${t}-${s}`;
             let slotLabel = '';

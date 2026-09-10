@@ -108,11 +108,12 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
     const generateAllCards = async () => {
       const itemsList: QRCardItem[] = [];
 
-      // Sort tiers descending (e.g. Tier 4 then Tier 3) or ascending based on selectedTiers
-      const sortedTiers = [...selectedTiers].sort((a, b) => b - a);
+      // Sort tiers ascending (from bottom to top: Tier 1 -> Tier 2 -> Tier 3 -> Tier 4)
+      const sortedTiers = [...selectedTiers].sort((a, b) => a - b);
 
-      for (const t of sortedTiers) {
-        for (const b of bayNumbers) {
+      // Order: Columns (bays) from left to right, and for each column from bottom to top
+      for (const b of bayNumbers) {
+        for (const t of sortedTiers) {
           for (let s = 1; s <= itemsPerBay; s++) {
             const slotLabel = getDefaultSlotLabel(b, t, s);
             const fullLocationCode = `${rackId}-${b}-${t}-${s}`;
