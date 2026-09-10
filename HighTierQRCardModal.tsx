@@ -215,6 +215,47 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
       // Find all page elements with class 'qr-a4-page'
       const pageElements = element.querySelectorAll<HTMLElement>('.qr-a4-page');
 
+      // Helper to render image onto A4 Landscape PDF within a centered 270x200mm frame with a black cut border
+      const renderCanvasToPdfFrame = (pdfDoc: jsPDF, canvasObj: HTMLCanvasElement) => {
+        const pdfWidth = 297;  // A4 Landscape Width (mm)
+        const pdfHeight = 210; // A4 Landscape Height (mm)
+
+        // User requested frame dimension: 270mm width x 200mm height
+        const frameW = 270;
+        const frameH = 200;
+
+        // Center 270x200mm frame on A4 page
+        const frameX = (pdfWidth - frameW) / 2; // 13.5 mm
+        const frameY = (pdfHeight - frameH) / 2; // 5.0 mm
+
+        // Draw crisp black cut border (270x200mm)
+        pdfDoc.setDrawColor(0, 0, 0);
+        pdfDoc.setLineWidth(0.6);
+        pdfDoc.rect(frameX, frameY, frameW, frameH);
+
+        // Fit content inside frame with 1.5mm inner margin
+        const innerMargin = 1.5;
+        const maxW = frameW - innerMargin * 2; // 267 mm
+        const maxH = frameH - innerMargin * 2; // 197 mm
+
+        const imgData = canvasObj.toDataURL('image/png');
+        const canvasRatio = canvasObj.width / canvasObj.height;
+
+        let renderW = maxW;
+        let renderH = renderW / canvasRatio;
+
+        if (renderH > maxH) {
+          renderH = maxH;
+          renderW = renderH * canvasRatio;
+        }
+
+        // Center image inside the 270x200mm frame
+        const imgX = frameX + (frameW - renderW) / 2;
+        const imgY = frameY + (frameH - renderH) / 2;
+
+        pdfDoc.addImage(imgData, 'PNG', imgX, imgY, renderW, renderH, undefined, 'FAST');
+      };
+
       if (pageElements.length === 0) {
         // Fallback: capture whole element
         const canvas = await safeHtml2Canvas(element, {
@@ -224,22 +265,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
           logging: false,
           windowWidth: 1200,
         });
-        const imgData = canvas.toDataURL('image/png');
-        const canvasRatio = canvas.width / canvas.height;
-        const pdfWidth = 297;
-        const pdfHeight = 210;
-        const margin = 4;
-        const maxW = pdfWidth - margin * 2;
-        const maxH = pdfHeight - margin * 2;
-        let renderW = maxW;
-        let renderH = renderW / canvasRatio;
-        if (renderH > maxH) {
-          renderH = maxH;
-          renderW = renderH * canvasRatio;
-        }
-        const xOffset = (pdfWidth - renderW) / 2;
-        const yOffset = (pdfHeight - renderH) / 2;
-        pdf.addImage(imgData, 'PNG', xOffset, yOffset, renderW, renderH, undefined, 'FAST');
+        renderCanvasToPdfFrame(pdf, canvas);
       } else {
         for (let i = 0; i < pageElements.length; i++) {
           if (i > 0) pdf.addPage('a4', 'landscape');
@@ -251,27 +277,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
             logging: false,
             windowWidth: 1200,
           });
-          const imgData = canvas.toDataURL('image/png');
-
-          const canvasRatio = canvas.width / canvas.height;
-          const pdfWidth = 297;
-          const pdfHeight = 210;
-          const margin = 4;
-          const maxW = pdfWidth - margin * 2;
-          const maxH = pdfHeight - margin * 2;
-
-          let renderW = maxW;
-          let renderH = renderW / canvasRatio;
-
-          if (renderH > maxH) {
-            renderH = maxH;
-            renderW = renderH * canvasRatio;
-          }
-
-          const xOffset = (pdfWidth - renderW) / 2;
-          const yOffset = (pdfHeight - renderH) / 2;
-
-          pdf.addImage(imgData, 'PNG', xOffset, yOffset, renderW, renderH, undefined, 'FAST');
+          renderCanvasToPdfFrame(pdf, canvas);
         }
       }
 
