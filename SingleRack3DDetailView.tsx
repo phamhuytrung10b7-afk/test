@@ -495,10 +495,10 @@ export const SingleRack3DDetailView: React.FC<SingleRack3DDetailViewProps> = ({
             type="button"
             onClick={() => setIsQRModalOpen(true)}
             className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 px-4 py-2 rounded-xl font-black text-xs flex items-center gap-2 shadow-lg transition-all cursor-pointer border-2 border-yellow-300 ring-2 ring-amber-400/30 active:scale-95"
-            title={`Xuất trọn bộ mã QR vị trí tầng cao (${is4Tier ? 'Tầng 3 & 4' : 'Tầng 3'}) khổ A4 ngang để quét mã tầm thấp`}
+            title="Xuất trọn bộ mã QR tất cả các vị trí kệ (Toàn bộ các tầng) khổ A4 ngang"
           >
             <QrCode className="w-4 h-4 text-slate-950" />
-            <span>📱 XUẤT MÃ QR TẦNG CAO ({is4Tier ? 'TẦNG 3 & 4' : 'TẦNG 3'})</span>
+            <span>📱 XUẤT MÃ QR TẤT CẢ VỊ TRÍ KỆ</span>
           </button>
 
           <button

@@ -1,4 +1,5 @@
 import React from 'react';
+import { SunhouseLogo } from './SunhouseLogo';
 import { 
   BoardConfig, 
   FloorMarking, 
@@ -203,9 +204,7 @@ export const PhysicalBoardFrame: React.FC<PhysicalBoardFrameProps> = ({
           <div className="bg-white border-b-2 border-slate-200 px-4 py-3 flex items-center justify-between gap-4">
             {/* Left: Brand Logo */}
             <div className="flex items-center gap-3">
-              <div className="bg-[#dc2626] text-white font-black px-4 py-1.5 rounded-lg text-lg tracking-tighter shadow-md border border-red-700 flex items-center justify-center font-sans">
-                SUNHOUSE
-              </div>
+              <SunhouseLogo className="h-10 w-auto" />
               <div className="hidden sm:flex flex-col">
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                   {boardConfig.companyName || 'NHÀ MÁY SUNHOUSE BÌNH DƯƠNG'}

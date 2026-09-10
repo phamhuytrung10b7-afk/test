@@ -312,13 +312,17 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
           </g>
         ))}
 
-        {/* Front Load Beams (Orange Heavy Duty Beams) */}
-        {Object.values(beamYLevels).map((beamY, i) => (
-          <g key={`beam-level-${i}`}>
-            <polygon points={`95,${beamY} 85,${beamY - 10} ${80 + totalRackWidth + 10},${beamY - 10} ${80 + totalRackWidth + 20},${beamY}`} fill={safeStorageType === 'bins' ? '#334155' : '#c2410c'} />
-            <rect x="95" y={beamY} width={totalRackWidth} height={is4Tier ? 18 : 20} fill={safeStorageType === 'bins' ? '#475569' : '#ea580c'} stroke="#1e293b" strokeWidth="1" filter="url(#cadShadow)" />
-          </g>
-        ))}
+        {/* Front Load Beams (Orange Heavy Duty Beams) - Skip Tier 1 (ground level) */}
+        {Object.entries(beamYLevels).map(([tierStr, beamY], i) => {
+          const tier = Number(tierStr);
+          if (tier === 1) return null; // Ground level has no raised beam
+          return (
+            <g key={`beam-level-${i}`}>
+              <polygon points={`95,${beamY} 85,${beamY - 10} ${80 + totalRackWidth + 10},${beamY - 10} ${80 + totalRackWidth + 20},${beamY}`} fill={safeStorageType === 'bins' ? '#334155' : '#c2410c'} />
+              <rect x="95" y={beamY} width={totalRackWidth} height={is4Tier ? 18 : 20} fill={safeStorageType === 'bins' ? '#475569' : '#ea580c'} stroke="#1e293b" strokeWidth="1" filter="url(#cadShadow)" />
+            </g>
+          );
+        })}
       </g>
 
       {/* 5S RED ANDON SIGNBOARD (FOR PLASTIC BINS) */}
@@ -348,7 +352,12 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
           <line x1="-31" y1="102" x2="3" y2="102" stroke="#ffffff" strokeWidth="0.8" opacity="0.6" />
           <text x="-14" y="116" fill="#fef08a" fontSize="7.5" fontWeight="900" textAnchor="middle">{rackId}</text>
           <text x="-14" y="128" fill="#ffffff" fontSize="6.5" fontWeight="bold" textAnchor="middle">KHAY LINH KIỆN</text>
-          <text x="-14" y="139" fill="#fecaca" fontSize="6" fontWeight="bold" textAnchor="middle">SUNHOUSE</text>
+          {/* Small Sunhouse Brand Badge on Andon Signboard */}
+          <g transform="translate(-24, 133) scale(0.22)">
+            <rect x="35" y="10" width="170" height="110" rx="20" fill="#0b7a84" />
+            <rect x="10" y="40" width="220" height="50" rx="25" fill="#dc2626" />
+            <text x="115" y="75" fill="#ffffff" fontSize="28" fontWeight="900" fontFamily="Arial, sans-serif" textAnchor="middle">SUNHOUSE</text>
+          </g>
         </g>
       )}
 

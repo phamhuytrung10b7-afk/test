@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import { IsometricRackSVG } from './IsometricRackSVG';
+import { SunhouseLogo } from './SunhouseLogo';
 
 interface CustomTableItem {
   id: string;
@@ -272,8 +273,8 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   const tab5TierCount = pdf4Config?.tierCount || 3;
   const tab5BayNumbers = pdf4Config?.bayNumbers || ['01', '02', '03', '04', '05'];
   const tab5ItemsPerBay = pdf4Config?.itemsPerBay || 2;
-  const [tab5Layout, setTab5Layout] = useState<'4_per_page' | '2_per_page' | '1_per_page'>('4_per_page');
-  const [tab5SelectedTiers, setTab5SelectedTiers] = useState<number[]>(tab5TierCount === 4 ? [4, 3] : [3]);
+  const [tab5Layout, setTab5Layout] = useState<'10_per_page' | '4_per_page' | '2_per_page' | '1_per_page'>('10_per_page');
+  const [tab5SelectedTiers, setTab5SelectedTiers] = useState<number[]>(tab5TierCount === 4 ? [4, 3, 2, 1] : [3, 2, 1]);
   const [tab5Cards, setTab5Cards] = useState<Array<{
     id: string;
     bay: string;
@@ -284,7 +285,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   }>>([]);
 
   useEffect(() => {
-    setTab5SelectedTiers(tab5TierCount === 4 ? [4, 3] : [3]);
+    setTab5SelectedTiers(tab5TierCount === 4 ? [4, 3, 2, 1] : [3, 2, 1]);
   }, [tab5TierCount, activeRackId]);
 
   useEffect(() => {
@@ -766,7 +767,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
               }`}
             >
               <QrCode className="w-4 h-4 text-yellow-300" />
-              <span>PDF 5: Thẻ Mã QR Tầng Cao (Ảnh 6)</span>
+              <span>PDF 5: Thẻ Mã QR Tất Cả Vị Trí Kệ</span>
             </button>
 
           </div>
@@ -1794,15 +1795,13 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                 {/* Header Banner */}
                 <div className="flex items-center justify-between border-b-2 border-slate-800 pb-3 mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="bg-[#dc2626] text-white font-black px-4 py-1.5 rounded-lg text-base tracking-wider shadow-sm">
-                      SUNHOUSE
-                    </div>
+                    <SunhouseLogo className="h-9 w-auto" />
                     <div>
                       <h2 className="text-base sm:text-lg font-black text-slate-950 tracking-tight uppercase">
-                        BẢNG MÃ QR CODE VỊ TRÍ TẦNG CAO • KỆ {activeRackId}
+                        BẢNG MÃ QR CODE TẤT CẢ VỊ TRÍ KỆ • KỆ {activeRackId}
                       </h2>
                       <p className="text-xs font-semibold text-slate-500">
-                        NHÀ MÁY SUNHOUSE BÌNH DƯƠNG • MÃ QR QUÉT VỊ TRÍ TRÊN CAO TẦM THẤP (BIN LOCATION)
+                        NHÀ MÁY SUNHOUSE BÌNH DƯƠNG • MÃ QR QUÉT TẤT CẢ VỊ TRÍ KỆ (BIN LOCATION)
                       </p>
                     </div>
                   </div>
@@ -1829,12 +1828,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                       {/* Top Header */}
                       <div className="w-full flex items-center justify-between border-b-2 border-slate-800 pb-2 mb-3">
                         <div className="flex items-center gap-1.5">
-                          <div className="bg-[#dc2626] text-white font-black px-2 py-0.5 rounded text-[11px]">
-                            SUNHOUSE
-                          </div>
-                          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-tight">
-                            BÌNH DƯƠNG
-                          </span>
+                          <SunhouseLogo className="h-5 w-auto" />
                         </div>
                         <div className="bg-amber-400 text-slate-950 font-black px-2.5 py-0.5 rounded text-xs border border-slate-950">
                           KỆ {activeRackId} • KHOANG {card.bay} • TẦNG {card.tier}

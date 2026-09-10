@@ -37,6 +37,7 @@ import { UpdateBoltModal } from './UpdateBoltModal';
 import { StationPickerModal } from './StationPickerModal';
 import { WarehouseEditorModal } from './WarehouseEditorModal';
 import { PrintExportModal } from './PrintExportModal';
+import { SunhouseLogo } from './SunhouseLogo';
 import { 
   Layers, 
   MapPin, 
@@ -375,9 +376,7 @@ export default function App() {
           
           {/* Logo & Application Title */}
           <div className="flex items-center gap-3">
-            <div className="bg-[#dc2626] text-white font-black px-3.5 py-1 rounded-lg text-sm tracking-wider shadow-sm">
-              SUNHOUSE
-            </div>
+            <SunhouseLogo className="h-9 w-auto" />
             <div className="flex flex-col">
               <span className="text-xs font-black text-slate-900 tracking-wide flex items-center gap-1.5">
                 <span>HỆ THỐNG SƠ ĐỒ & BẢNG ĐỊNH VỊ VỊ TRÍ 5S</span>

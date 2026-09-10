@@ -18,6 +18,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { SunhouseLogo } from './SunhouseLogo';
 import html2canvas from 'html2canvas';
 
 export interface QRCardItem {
@@ -62,14 +63,14 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
   const [bottomNote, setBottomNote] = useState<string>('MÃ SCAN TỰ ĐỘNG  -  KHO HÀNG');
   
   // Layout mode for printing on A4 Landscape
-  // '4_per_page' (2x2 grid ~ 45x45mm QR), '2_per_page' (2 cards ~ 55x55mm QR), '1_per_page' (Large ~ 100x100mm QR)
-  const [layoutMode, setLayoutMode] = useState<'4_per_page' | '2_per_page' | '1_per_page'>('4_per_page');
+  // '10_per_page' (2x5 grid ~ 10 cards), '4_per_page' (2x2 grid), '2_per_page' (2 cards), '1_per_page' (Large)
+  const [layoutMode, setLayoutMode] = useState<'10_per_page' | '4_per_page' | '2_per_page' | '1_per_page'>('10_per_page');
   
   // QR Payload format: 'slot_code' (e.g. C05) or 'full_code' (e.g. A-01-3-1)
   const [qrFormat, setQrFormat] = useState<'slot_code' | 'full_code'>('slot_code');
 
-  // Filter tiers: 'high_tiers_only' (Tier 3 for 3T, Tier 3&4 for 4T), or 'all_tiers', or custom selected tiers
-  const defaultSelectedTiers = tierCount === 4 ? [4, 3] : [3];
+  // Filter tiers: default to all tiers ([4,3,2,1] for 4T or [3,2,1] for 3T)
+  const defaultSelectedTiers = tierCount === 4 ? [4, 3, 2, 1] : [3, 2, 1];
   const [selectedTiers, setSelectedTiers] = useState<number[]>(defaultSelectedTiers);
 
   // Cards state with generated QR data URLs
@@ -83,7 +84,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
 
   // Reset selected tiers when tierCount changes
   useEffect(() => {
-    setSelectedTiers(tierCount === 4 ? [4, 3] : [3]);
+    setSelectedTiers(tierCount === 4 ? [4, 3, 2, 1] : [3, 2, 1]);
   }, [tierCount, rackId]);
 
   // Helper to compute default slot label
@@ -271,7 +272,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
   };
 
   // Chunk cards into pages based on layoutMode
-  const itemsPerPage = layoutMode === '4_per_page' ? 4 : layoutMode === '2_per_page' ? 2 : 1;
+  const itemsPerPage = layoutMode === '10_per_page' ? 10 : layoutMode === '4_per_page' ? 4 : layoutMode === '2_per_page' ? 2 : 1;
   const chunkedPages: QRCardItem[][] = [];
   for (let i = 0; i < cards.length; i += itemsPerPage) {
     chunkedPages.push(cards.slice(i, i + itemsPerPage));
@@ -292,14 +293,14 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg sm:text-xl font-black uppercase tracking-tight text-white flex items-center gap-2">
-                  <span>MÃ QR QUÉT VỊ TRÍ TẦNG CAO — KỆ {rackId}</span>
+                  <span>MÃ QR TẤT CẢ VỊ TRÍ KỆ — KỆ {rackId}</span>
                 </h2>
                 <span className="bg-amber-500 text-slate-950 text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  {tierCount === 4 ? 'TẦNG 3 & 4 (18 Ô)' : 'TẦNG 3 (10 Ô)'}
+                  {tierCount === 4 ? 'TẤT CẢ 4 TẦNG (36 Ô)' : 'TẤT CẢ 3 TẦNG (30 Ô)'}
                 </span>
               </div>
               <p className="text-xs text-slate-300">
-                Xuất thẻ mã QR khổ A4 ngang tiêu chuẩn (QR ≥ 40x40mm) để dán vị trí tầm thấp, hỗ trợ quét mã kho tầng cao nhanh chóng.
+                Xuất thẻ mã QR khổ A4 ngang tiêu chuẩn (QR ≥ 40x40mm) cho tất cả các vị trí khoang và tầng của kệ.
               </p>
             </div>
           </div>
@@ -377,6 +378,19 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
             {/* Layout Mode (A4 Grid) */}
             <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-300 shadow-xs">
               <span className="text-slate-600 text-[11px] font-bold px-2 uppercase">BỐ CỤC IN A4:</span>
+              <button
+                type="button"
+                onClick={() => setLayoutMode('10_per_page')}
+                className={`px-3 py-1 rounded-lg text-xs transition-all cursor-pointer font-bold ${
+                  layoutMode === '10_per_page'
+                    ? 'bg-indigo-700 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100'
+                }`}
+                title="10 Thẻ / 1 Trang A4 Ngang (2 cột x 5 hàng)"
+              >
+                10 Thẻ / Trang (2x5)
+              </button>
+
               <button
                 type="button"
                 onClick={() => setLayoutMode('4_per_page')}
@@ -508,24 +522,28 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
                 {/* Page Title & Watermark in Preview (Hidden in Print) */}
                 <div className="flex items-center justify-between pb-3 mb-3 border-b border-dashed border-slate-200 print:hidden text-xs text-slate-500">
                   <span className="font-bold">TRANG {pageIndex + 1} / {chunkedPages.length} (KHỔ A4 NGANG)</span>
-                  <span className="font-mono">KỆ {rackId} • BẢNG MÃ QR VỊ TRÍ TẦNG CAO</span>
+                  <span className="font-mono">KỆ {rackId} • BẢNG MÃ QR TẤT CẢ VỊ TRÍ KỆ</span>
                 </div>
 
                 {/* Card Grid based on layoutMode */}
-                <div className={`grid gap-5 flex-1 items-center justify-center ${
-                  layoutMode === '4_per_page'
-                    ? 'grid-cols-1 sm:grid-cols-2 grid-rows-2'
+                <div className={`grid flex-1 items-center justify-center ${
+                  layoutMode === '10_per_page'
+                    ? 'grid-cols-2 grid-rows-5 gap-3'
+                    : layoutMode === '4_per_page'
+                    ? 'grid-cols-1 sm:grid-cols-2 grid-rows-2 gap-5'
                     : layoutMode === '2_per_page'
-                    ? 'grid-cols-1 sm:grid-cols-2'
-                    : 'grid-cols-1'
+                    ? 'grid-cols-1 sm:grid-cols-2 gap-5'
+                    : 'grid-cols-1 gap-5'
                 }`}>
                   {pageCards.map((card) => (
                     <div
                       key={card.id}
                       id={`qr-card-${card.id}`}
-                      className="qr-card-item bg-white border-[2.5px] border-slate-900 rounded-[28px] p-4 sm:p-5 flex flex-col justify-between shadow-md relative group transition-transform hover:scale-[1.01]"
+                      className={`qr-card-item bg-white border-[2px] border-slate-900 rounded-2xl flex flex-col justify-between shadow-xs relative group transition-transform hover:scale-[1.01] ${
+                        layoutMode === '10_per_page' ? 'p-2 sm:p-2.5' : 'p-4 sm:p-5'
+                      }`}
                       style={{
-                        minHeight: layoutMode === '1_per_page' ? '480px' : layoutMode === '2_per_page' ? '320px' : '230px'
+                        minHeight: layoutMode === '10_per_page' ? '96px' : layoutMode === '1_per_page' ? '480px' : layoutMode === '2_per_page' ? '320px' : '230px'
                       }}
                     >
                       {/* Download button on hover (preview mode) */}
@@ -543,15 +561,9 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
 
                       {/* TOP SECTION: COMPANY LOGO & NAME */}
                       <div className="flex items-center justify-between gap-3 pb-2.5 border-b-2 border-slate-900">
-                        {/* Sunhouse Red Badge Logo Pill */}
+                        {/* Sunhouse Logo */}
                         <div className="shrink-0">
-                          <div className="bg-[#dc2626] text-white px-3 py-1 rounded-full flex flex-col items-center justify-center shadow-xs border border-red-700">
-                            <span className="font-black text-[11px] sm:text-xs tracking-wider leading-none">
-                              SUNHOUSE
-                            </span>
-                            {/* Blue bottom arc accent */}
-                            <span className="w-full h-[2px] bg-teal-300 rounded-full mt-0.5" />
-                          </div>
+                          <SunhouseLogo className="h-7 w-auto" />
                         </div>
 
                         {/* Company & Branch Text */}
