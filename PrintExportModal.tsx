@@ -230,45 +230,6 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
     }
   }, [pdfData]);
 
-  if (!isOpen) return null;
-
-  // Image Upload Handlers
-  const handleImageUpload = (pdfKey: 'pdf1' | 'pdf3' | 'pdf4', e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Url = event.target?.result as string;
-      setPdfData((prev) => ({
-        ...prev,
-        [pdfKey]: {
-          ...prev[pdfKey],
-          customImage: base64Url,
-        },
-      }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleClearImage = (pdfKey: 'pdf1' | 'pdf3' | 'pdf4') => {
-    setPdfData((prev) => ({
-      ...prev,
-      [pdfKey]: {
-        ...prev[pdfKey],
-        customImage: null,
-      },
-    }));
-  };
-
-  const handleResetPdfData = () => {
-    if (window.confirm('Bạn có chắc chắn muốn khôi phục lại dữ liệu PDF mặc định?')) {
-      const defaultData = getDefaultPdfData();
-      setPdfData(defaultData);
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-    }
-  };
-
   // State & QR generation for Tab 5 (High-Tier QR Labels)
   const tab5TierCount = pdf4Config?.tierCount || 3;
   const tab5BayNumbers = pdf4Config?.bayNumbers || ['01', '02', '03', '04', '05'];
@@ -285,10 +246,12 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   }>>([]);
 
   useEffect(() => {
+    if (!isOpen) return;
     setTab5SelectedTiers(tab5TierCount === 4 ? [1, 2, 3, 4] : [1, 2, 3]);
-  }, [tab5TierCount, activeRackId]);
+  }, [isOpen, tab5TierCount, activeRackId]);
 
   useEffect(() => {
+    if (!isOpen) return;
     let isMounted = true;
     const generateTab5Cards = async () => {
       const list: Array<{
@@ -338,7 +301,46 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [activeRackId, tab5TierCount, tab5BayNumbers, tab5ItemsPerBay, pdf4Config, tab5SelectedTiers]);
+  }, [isOpen, activeRackId, tab5TierCount, tab5BayNumbers, tab5ItemsPerBay, pdf4Config, tab5SelectedTiers]);
+
+  if (!isOpen) return null;
+
+  // Image Upload Handlers
+  const handleImageUpload = (pdfKey: 'pdf1' | 'pdf3' | 'pdf4', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Url = event.target?.result as string;
+      setPdfData((prev) => ({
+        ...prev,
+        [pdfKey]: {
+          ...prev[pdfKey],
+          customImage: base64Url,
+        },
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleClearImage = (pdfKey: 'pdf1' | 'pdf3' | 'pdf4') => {
+    setPdfData((prev) => ({
+      ...prev,
+      [pdfKey]: {
+        ...prev[pdfKey],
+        customImage: null,
+      },
+    }));
+  };
+
+  const handleResetPdfData = () => {
+    if (window.confirm('Bạn có chắc chắn muốn khôi phục lại dữ liệu PDF mặc định?')) {
+      const defaultData = getDefaultPdfData();
+      setPdfData(defaultData);
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    }
+  };
 
   // Helper function to convert oklch and oklab color strings to rgb/rgba format for html2canvas compatibility
   const parseAndConvertModernColors = (str: string): string => {
@@ -530,9 +532,10 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
       const element = document.getElementById(`printable-pdf-container-${pdfType}`);
       if (element) {
         const canvas = await safeHtml2Canvas(element, { 
-          scale: 2, 
+          scale: 2.5, 
           useCORS: true, 
-          logging: false
+          logging: false,
+          windowWidth: 1200
         });
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({
@@ -540,9 +543,21 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
           unit: 'mm',
           format: 'a4'
         });
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        const canvasRatio = canvas.width / canvas.height;
+        const pdfWidth = 297;
+        const pdfHeight = 210;
+        const margin = 4;
+        const maxW = pdfWidth - margin * 2;
+        const maxH = pdfHeight - margin * 2;
+        let renderW = maxW;
+        let renderH = renderW / canvasRatio;
+        if (renderH > maxH) {
+          renderH = maxH;
+          renderW = renderH * canvasRatio;
+        }
+        const xOffset = (pdfWidth - renderW) / 2;
+        const yOffset = (pdfHeight - renderH) / 2;
+        pdf.addImage(imgData, 'PNG', xOffset, yOffset, renderW, renderH, undefined, 'FAST');
 
         const pdfBlob = pdf.output('blob');
         const blobUrl = URL.createObjectURL(pdfBlob);
@@ -585,9 +600,10 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
           const element = document.getElementById(`printable-pdf-container-${tab}`);
           if (element) {
             const canvas = await safeHtml2Canvas(element, { 
-              scale: 2, 
+              scale: 2.5, 
               useCORS: true, 
-              logging: false
+              logging: false,
+              windowWidth: 1200
             });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
@@ -595,9 +611,21 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
               unit: 'mm',
               format: 'a4'
             });
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            const canvasRatio = canvas.width / canvas.height;
+            const pdfWidth = 297;
+            const pdfHeight = 210;
+            const margin = 4;
+            const maxW = pdfWidth - margin * 2;
+            const maxH = pdfHeight - margin * 2;
+            let renderW = maxW;
+            let renderH = renderW / canvasRatio;
+            if (renderH > maxH) {
+              renderH = maxH;
+              renderW = renderH * canvasRatio;
+            }
+            const xOffset = (pdfWidth - renderW) / 2;
+            const yOffset = (pdfHeight - renderH) / 2;
+            pdf.addImage(imgData, 'PNG', xOffset, yOffset, renderW, renderH, undefined, 'FAST');
             
             const fileNames = {
               pdf1: `PDF1_SoDoTongQuanKho_${pdfData.pdf1.warehouseCode}.pdf`,
@@ -615,9 +643,10 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
         const element = document.getElementById(`printable-pdf-container-${pdfType}`);
         if (element) {
           const canvas = await safeHtml2Canvas(element, { 
-            scale: 2, 
+            scale: 2.5, 
             useCORS: true, 
-            logging: false
+            logging: false,
+            windowWidth: 1200
           });
           const imgData = canvas.toDataURL('image/png');
           const pdf = new jsPDF({
@@ -625,9 +654,21 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
             unit: 'mm',
             format: 'a4'
           });
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-          pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+          const canvasRatio = canvas.width / canvas.height;
+          const pdfWidth = 297;
+          const pdfHeight = 210;
+          const margin = 4;
+          const maxW = pdfWidth - margin * 2;
+          const maxH = pdfHeight - margin * 2;
+          let renderW = maxW;
+          let renderH = renderW / canvasRatio;
+          if (renderH > maxH) {
+            renderH = maxH;
+            renderW = renderH * canvasRatio;
+          }
+          const xOffset = (pdfWidth - renderW) / 2;
+          const yOffset = (pdfHeight - renderH) / 2;
+          pdf.addImage(imgData, 'PNG', xOffset, yOffset, renderW, renderH, undefined, 'FAST');
 
           const fileNames = {
             pdf1: `PDF1_SoDoTongQuanKho_${pdfData.pdf1.warehouseCode}.pdf`,
@@ -1823,7 +1864,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                 </div>
 
                 {/* Grid of QR Code Cards */}
-                <div className={`w-full grid gap-3.5 sm:gap-4 ${
+                <div className={`w-full grid gap-3 sm:gap-3.5 ${
                   tab5Layout === '20_per_page' ? 'grid-cols-2 md:grid-cols-5' :
                   tab5Layout === '10_per_page' ? 'grid-cols-1 md:grid-cols-2' :
                   tab5Layout === '4_per_page' ? 'grid-cols-1 md:grid-cols-2' :
@@ -1833,46 +1874,46 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                   {tab5Cards.map((card) => (
                     <div
                       key={card.id}
-                      className="bg-white border-2 border-slate-950 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between text-center relative shadow-xs overflow-hidden"
-                      style={{ minHeight: tab5Layout === '20_per_page' ? '125px' : tab5Layout === '10_per_page' ? '118px' : tab5Layout === '1_per_page' ? '360px' : '250px' }}
+                      className="bg-white border-2 border-slate-950 rounded-xl p-2 sm:p-2.5 flex flex-col justify-between text-center relative shadow-xs overflow-hidden"
+                      style={{ minHeight: tab5Layout === '20_per_page' ? '125px' : tab5Layout === '10_per_page' ? '128px' : tab5Layout === '1_per_page' ? '360px' : '250px' }}
                     >
                       {/* Top Header */}
-                      <div className="w-full flex items-center justify-between border-b-2 border-slate-900 pb-1 mb-1.5">
+                      <div className="w-full flex items-center justify-between border-b-2 border-slate-900 pb-1 mb-1">
                         <div className="flex items-center gap-1">
-                          <SunhouseLogo className={tab5Layout === '20_per_page' ? 'h-4 w-auto' : 'h-5 w-auto'} />
+                          <SunhouseLogo className={tab5Layout === '20_per_page' ? 'h-3.5 w-auto' : tab5Layout === '10_per_page' ? 'h-4 w-auto' : 'h-5 w-auto'} />
                         </div>
-                        <div className="bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded text-[10px] border border-slate-950">
+                        <div className="bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded text-[9.5px] border border-slate-950">
                           KỆ {activeRackId} • KHOANG {card.bay} • TẦNG {card.tier}
                         </div>
                       </div>
 
                       {/* Middle: QR and Text */}
-                      <div className="w-full flex items-center justify-between gap-2 my-1">
+                      <div className="w-full flex items-center justify-between gap-2 my-0.5">
                         {/* Location Text Display */}
                         <div className="flex flex-col items-start justify-center flex-1 text-left">
-                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                          <span className="text-[8.5px] sm:text-[9px] font-bold text-slate-500 uppercase tracking-wider">
                             MÃ VỊ TRÍ Ô
                           </span>
                           <div className={`font-black text-slate-950 tracking-wider font-mono my-0.5 ${
-                            tab5Layout === '20_per_page' ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'
+                            tab5Layout === '20_per_page' ? 'text-2xl sm:text-3xl' : tab5Layout === '10_per_page' ? 'text-3xl sm:text-3.5xl' : 'text-3xl sm:text-4xl'
                           }`}>
                             {card.slotLabel}
                           </div>
-                          <span className="text-[9px] font-bold text-teal-800 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200">
+                          <span className="text-[8.5px] sm:text-[9px] font-bold text-teal-800 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200">
                             Ô {card.slot} • Khoang {card.bay}
                           </span>
                         </div>
 
                         {/* QR Code Container */}
-                        <div className="bg-white p-1 border border-slate-900 rounded-lg shadow-xs flex flex-col items-center shrink-0">
+                        <div className="bg-white p-0.5 border border-slate-900 rounded-lg shadow-xs flex flex-col items-center shrink-0">
                           {card.qrDataUrl ? (
                             <img 
                               src={card.qrDataUrl} 
                               alt={`QR ${card.slotLabel}`}
                               className="object-contain"
                               style={{ 
-                                width: tab5Layout === '20_per_page' ? '54px' : tab5Layout === '10_per_page' ? '120px' : '85px', 
-                                height: tab5Layout === '20_per_page' ? '54px' : tab5Layout === '10_per_page' ? '120px' : '85px' 
+                                width: tab5Layout === '20_per_page' ? '52px' : tab5Layout === '10_per_page' ? '88px' : '85px', 
+                                height: tab5Layout === '20_per_page' ? '52px' : tab5Layout === '10_per_page' ? '88px' : '85px' 
                               }}
                             />
                           ) : (

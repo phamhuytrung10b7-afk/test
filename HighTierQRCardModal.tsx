@@ -218,13 +218,28 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
       if (pageElements.length === 0) {
         // Fallback: capture whole element
         const canvas = await safeHtml2Canvas(element, {
-          scale: 2,
+          scale: 2.5,
           useCORS: true,
           backgroundColor: '#ffffff',
-          logging: false
+          logging: false,
+          windowWidth: 1200,
         });
         const imgData = canvas.toDataURL('image/png');
-        pdf.addImage(imgData, 'PNG', 5, 5, 287, 200);
+        const canvasRatio = canvas.width / canvas.height;
+        const pdfWidth = 297;
+        const pdfHeight = 210;
+        const margin = 4;
+        const maxW = pdfWidth - margin * 2;
+        const maxH = pdfHeight - margin * 2;
+        let renderW = maxW;
+        let renderH = renderW / canvasRatio;
+        if (renderH > maxH) {
+          renderH = maxH;
+          renderW = renderH * canvasRatio;
+        }
+        const xOffset = (pdfWidth - renderW) / 2;
+        const yOffset = (pdfHeight - renderH) / 2;
+        pdf.addImage(imgData, 'PNG', xOffset, yOffset, renderW, renderH, undefined, 'FAST');
       } else {
         for (let i = 0; i < pageElements.length; i++) {
           if (i > 0) pdf.addPage('a4', 'landscape');
@@ -233,10 +248,30 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
             scale: 2.5,
             useCORS: true,
             backgroundColor: '#ffffff',
-            logging: false
+            logging: false,
+            windowWidth: 1200,
           });
           const imgData = canvas.toDataURL('image/png');
-          pdf.addImage(imgData, 'PNG', 5, 5, 287, 200, undefined, 'FAST');
+
+          const canvasRatio = canvas.width / canvas.height;
+          const pdfWidth = 297;
+          const pdfHeight = 210;
+          const margin = 4;
+          const maxW = pdfWidth - margin * 2;
+          const maxH = pdfHeight - margin * 2;
+
+          let renderW = maxW;
+          let renderH = renderW / canvasRatio;
+
+          if (renderH > maxH) {
+            renderH = maxH;
+            renderW = renderH * canvasRatio;
+          }
+
+          const xOffset = (pdfWidth - renderW) / 2;
+          const yOffset = (pdfHeight - renderH) / 2;
+
+          pdf.addImage(imgData, 'PNG', xOffset, yOffset, renderW, renderH, undefined, 'FAST');
         }
       }
 
@@ -589,22 +624,30 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
 
                       {/* TOP SECTION: COMPANY LOGO & NAME */}
                       <div className={`flex items-center justify-between gap-1.5 border-b-2 border-slate-900 ${
-                        layoutMode === '20_per_page' ? 'pb-1' : 'pb-2'
+                        layoutMode === '20_per_page' ? 'pb-0.5' : layoutMode === '10_per_page' ? 'pb-1' : 'pb-2'
                       }`}>
                         {/* Sunhouse Logo */}
                         <div className="shrink-0">
-                          <SunhouseLogo className={layoutMode === '20_per_page' ? 'h-4 w-auto' : 'h-6 sm:h-7 w-auto'} />
+                          <SunhouseLogo className={
+                            layoutMode === '20_per_page' ? 'h-3.5 w-auto' : 
+                            layoutMode === '10_per_page' ? 'h-4 sm:h-4.5 w-auto' : 
+                            'h-6 sm:h-7 w-auto'
+                          } />
                         </div>
 
                         {/* Company & Branch Text */}
                         <div className="flex-1 text-center flex flex-col items-center justify-center min-w-0">
-                          <h3 className={`font-black uppercase text-slate-900 tracking-tight leading-tight truncate w-full ${
-                            layoutMode === '20_per_page' ? 'text-[8px] sm:text-[8.5px]' : 'text-[11px] sm:text-xs'
+                          <h3 className={`font-black uppercase text-slate-900 tracking-tight leading-tight w-full ${
+                            layoutMode === '20_per_page' ? 'text-[7.5px] sm:text-[8px]' : 
+                            layoutMode === '10_per_page' ? 'text-[9.5px] sm:text-[10px]' : 
+                            'text-[11px] sm:text-xs'
                           }`}>
                             {editableCompanyName}
                           </h3>
                           {layoutMode !== '20_per_page' && (
-                            <h4 className="text-[10px] sm:text-[11px] font-bold uppercase text-slate-900 tracking-wider mt-0.5">
+                            <h4 className={`font-bold uppercase text-slate-900 tracking-wider mt-0.5 ${
+                              layoutMode === '10_per_page' ? 'text-[8.5px] sm:text-[9px]' : 'text-[10px] sm:text-[11px]'
+                            }`}>
                               {editableBranchName}
                             </h4>
                           )}
@@ -613,13 +656,13 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
 
                       {/* MIDDLE SECTION: LOCATION INFO (LEFT) & QR CODE (RIGHT) */}
                       <div className={`flex items-center justify-between gap-1.5 flex-1 ${
-                        layoutMode === '20_per_page' ? 'py-1' : 'py-2.5'
+                        layoutMode === '20_per_page' ? 'py-0.5' : layoutMode === '10_per_page' ? 'py-1' : 'py-2.5'
                       }`}>
                         
                         {/* Left Column: Label & Hierarchy Details */}
                         <div className="flex flex-col justify-center flex-1 pl-0.5 min-w-0">
                           <span className={`font-black text-slate-900 tracking-wide uppercase ${
-                            layoutMode === '20_per_page' ? 'text-[8px] sm:text-[8.5px]' : 'text-xs sm:text-sm'
+                            layoutMode === '20_per_page' ? 'text-[7.5px] sm:text-[8px]' : layoutMode === '10_per_page' ? 'text-[9.5px] sm:text-[10px]' : 'text-xs sm:text-sm'
                           }`}>
                             VỊ TRÍ KỆ
                           </span>
@@ -628,7 +671,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
                             layoutMode === '20_per_page'
                               ? 'text-2xl sm:text-3xl my-0.5'
                               : layoutMode === '10_per_page'
-                              ? 'text-3xl sm:text-4xl my-1'
+                              ? 'text-3xl sm:text-3.5xl my-0.5'
                               : layoutMode === '1_per_page' 
                               ? 'text-7xl sm:text-8xl my-1' 
                               : layoutMode === '2_per_page'
@@ -639,7 +682,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
                           </span>
 
                           <div className={`font-bold text-slate-800 flex flex-wrap items-center gap-0.5 ${
-                            layoutMode === '20_per_page' ? 'text-[8px] sm:text-[8.5px]' : 'text-xs sm:text-sm mt-0.5 gap-1'
+                            layoutMode === '20_per_page' ? 'text-[7.5px] sm:text-[8px]' : layoutMode === '10_per_page' ? 'text-[9.5px] sm:text-[10px] mt-0.5 gap-0.5' : 'text-xs sm:text-sm mt-0.5 gap-1'
                           }`}>
                             <span>Khoang {card.bay}</span>
                             <span>-</span>
@@ -649,18 +692,18 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
                           </div>
                         </div>
 
-                        {/* Right Column: Crisp QR Code (Guaranteed 40x40mm for easy camera scan) */}
-                        <div className="shrink-0 flex items-center justify-center border border-slate-900/10 p-1 rounded-lg bg-white shadow-xs">
+                        {/* Right Column: Crisp QR Code */}
+                        <div className="shrink-0 flex items-center justify-center border border-slate-900/10 p-0.5 rounded-lg bg-white shadow-xs">
                           {card.qrDataUrl ? (
                             <img
                               src={card.qrDataUrl}
                               alt={`QR Code ${card.slotLabel}`}
                               className="object-contain"
                               style={{
-                                width: layoutMode === '20_per_page' ? '56px' : layoutMode === '10_per_page' ? '120px' : layoutMode === '1_per_page' ? '180px' : layoutMode === '2_per_page' ? '125px' : '95px',
-                                height: layoutMode === '20_per_page' ? '56px' : layoutMode === '10_per_page' ? '120px' : layoutMode === '1_per_page' ? '180px' : layoutMode === '2_per_page' ? '125px' : '95px',
-                                minWidth: layoutMode === '20_per_page' ? '48px' : layoutMode === '10_per_page' ? '110px' : '70px',
-                                minHeight: layoutMode === '20_per_page' ? '48px' : layoutMode === '10_per_page' ? '110px' : '70px'
+                                width: layoutMode === '20_per_page' ? '52px' : layoutMode === '10_per_page' ? '88px' : layoutMode === '1_per_page' ? '180px' : layoutMode === '2_per_page' ? '125px' : '95px',
+                                height: layoutMode === '20_per_page' ? '52px' : layoutMode === '10_per_page' ? '88px' : layoutMode === '1_per_page' ? '180px' : layoutMode === '2_per_page' ? '125px' : '95px',
+                                minWidth: layoutMode === '20_per_page' ? '44px' : layoutMode === '10_per_page' ? '80px' : '70px',
+                                minHeight: layoutMode === '20_per_page' ? '44px' : layoutMode === '10_per_page' ? '80px' : '70px'
                               }}
                             />
                           ) : (
