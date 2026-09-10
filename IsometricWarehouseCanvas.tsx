@@ -75,7 +75,7 @@ interface IsometricWarehouseCanvasProps {
 }
 
 export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> = ({
-  racks,
+  racks = [],
   onUpdateRacks,
   facilities = [],
   onUpdateFacilities,
@@ -83,7 +83,7 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
   onUpdateAnnotations,
   floorMarkings = [],
   onUpdateFloorMarkings,
-  zones,
+  zones = [],
   currentPosition,
   onPositionChange,
   items = [],
@@ -182,6 +182,22 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
   useEffect(() => {
     localStorage.setItem('warehouse_show_pin_badge', String(showPinBadge));
   }, [showPinBadge]);
+
+  // Listen to cross-component storage changes for visibility settings
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const facSaved = localStorage.getItem('warehouse_show_facility_labels');
+      if (facSaved !== null) setShowFacilityLabels(facSaved === 'true');
+      const rackSaved = localStorage.getItem('warehouse_show_rack_labels');
+      if (rackSaved !== null) setShowRackLabels(rackSaved === 'true');
+      const annSaved = localStorage.getItem('warehouse_show_annotation_labels');
+      if (annSaved !== null) setShowAnnotationLabels(annSaved === 'true');
+      const pinSaved = localStorage.getItem('warehouse_show_pin_badge');
+      if (pinSaved !== null) setShowPinBadge(pinSaved === 'true');
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

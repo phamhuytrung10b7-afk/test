@@ -59,7 +59,7 @@ export const WarehouseEditorModal: React.FC<WarehouseEditorModalProps> = ({
   onClose,
   boardConfig,
   onSaveBoardConfig,
-  racks,
+  racks = [],
   onSaveRacks,
   facilities = [],
   onSaveFacilities,
@@ -67,31 +67,70 @@ export const WarehouseEditorModal: React.FC<WarehouseEditorModalProps> = ({
   onSaveAnnotations,
   floorMarkings = [],
   onSaveFloorMarkings,
-  items,
+  items = [],
   onSaveItems,
-  safetyRules,
+  safetyRules = [],
   onSaveSafetyRules,
   onResetToDefaults,
 }) => {
-  const [activeTab, setActiveTab] = useState<'racks' | 'facilities' | 'annotations' | 'floor_markings' | 'items' | 'board' | 'backup'>('racks');
+  const [activeTab, setActiveTab] = useState<'racks' | 'facilities' | 'annotations' | 'floor_markings' | 'items' | 'display' | 'board' | 'backup'>('racks');
+
+  // Label & Object Visibility States (Tùy chọn ẩn / hiện tên kệ, tên vật thể, nhãn)
+  const [showFacilityLabels, setShowFacilityLabels] = useState<boolean>(() => {
+    const saved = localStorage.getItem('warehouse_show_facility_labels');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [showRackLabels, setShowRackLabels] = useState<boolean>(() => {
+    const saved = localStorage.getItem('warehouse_show_rack_labels');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [showAnnotationLabels, setShowAnnotationLabels] = useState<boolean>(() => {
+    const saved = localStorage.getItem('warehouse_show_annotation_labels');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [showPinBadge, setShowPinBadge] = useState<boolean>(() => {
+    const saved = localStorage.getItem('warehouse_show_pin_badge');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const toggleFacilityLabels = (val: boolean) => {
+    setShowFacilityLabels(val);
+    localStorage.setItem('warehouse_show_facility_labels', String(val));
+    window.dispatchEvent(new Event('storage'));
+  };
+  const toggleRackLabels = (val: boolean) => {
+    setShowRackLabels(val);
+    localStorage.setItem('warehouse_show_rack_labels', String(val));
+    window.dispatchEvent(new Event('storage'));
+  };
+  const toggleAnnotationLabels = (val: boolean) => {
+    setShowAnnotationLabels(val);
+    localStorage.setItem('warehouse_show_annotation_labels', String(val));
+    window.dispatchEvent(new Event('storage'));
+  };
+  const togglePinBadge = (val: boolean) => {
+    setShowPinBadge(val);
+    localStorage.setItem('warehouse_show_pin_badge', String(val));
+    window.dispatchEvent(new Event('storage'));
+  };
 
   // Local states for editing
-  const [localConfig, setLocalConfig] = useState<BoardConfig>({ ...boardConfig });
-  const [localRacks, setLocalRacks] = useState<WarehouseRack[]>([...racks]);
-  const [localFacilities, setLocalFacilities] = useState<WarehouseFacilityObject[]>([...facilities]);
-  const [localAnnotations, setLocalAnnotations] = useState<MapTextAnnotation[]>([...annotations]);
-  const [localFloorMarkings, setLocalFloorMarkings] = useState<FloorMarking[]>([...floorMarkings]);
-  const [localItems, setLocalItems] = useState<InventoryItem[]>([...items]);
+  const [localConfig, setLocalConfig] = useState<BoardConfig>(() => boardConfig ? { ...boardConfig } : ({} as BoardConfig));
+  const [localRacks, setLocalRacks] = useState<WarehouseRack[]>(() => Array.isArray(racks) ? [...racks] : []);
+  const [localFacilities, setLocalFacilities] = useState<WarehouseFacilityObject[]>(() => Array.isArray(facilities) ? [...facilities] : []);
+  const [localAnnotations, setLocalAnnotations] = useState<MapTextAnnotation[]>(() => Array.isArray(annotations) ? [...annotations] : []);
+  const [localFloorMarkings, setLocalFloorMarkings] = useState<FloorMarking[]>(() => Array.isArray(floorMarkings) ? [...floorMarkings] : []);
+  const [localItems, setLocalItems] = useState<InventoryItem[]>(() => Array.isArray(items) ? [...items] : []);
 
   // Synchronize local states whenever props change or modal is opened
   useEffect(() => {
     if (isOpen) {
-      setLocalConfig({ ...boardConfig });
-      setLocalRacks([...racks]);
-      setLocalFacilities([...facilities]);
-      setLocalAnnotations([...annotations]);
-      setLocalFloorMarkings([...floorMarkings]);
-      setLocalItems([...items]);
+      setLocalConfig(boardConfig ? { ...boardConfig } : ({} as BoardConfig));
+      setLocalRacks(Array.isArray(racks) ? [...racks] : []);
+      setLocalFacilities(Array.isArray(facilities) ? [...facilities] : []);
+      setLocalAnnotations(Array.isArray(annotations) ? [...annotations] : []);
+      setLocalFloorMarkings(Array.isArray(floorMarkings) ? [...floorMarkings] : []);
+      setLocalItems(Array.isArray(items) ? [...items] : []);
     }
   }, [isOpen, boardConfig, racks, facilities, annotations, floorMarkings, items]);
 
@@ -569,6 +608,19 @@ export const WarehouseEditorModal: React.FC<WarehouseEditorModalProps> = ({
             <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-teal-950 text-teal-300 border border-teal-800">
               {localItems.length}
             </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('display')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shrink-0 ${
+              activeTab === 'display'
+                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-transparent'
+            }`}
+          >
+            <Eye className="w-4 h-4 text-rose-400" />
+            <span className="whitespace-nowrap">Ẩn / Hiện Tên & Vật Thể</span>
           </button>
 
           <button
@@ -1716,6 +1768,116 @@ export const WarehouseEditorModal: React.FC<WarehouseEditorModalProps> = ({
                 <span>Lưu Thay Đổi Thông Tin Bảng</span>
               </button>
             </form>
+          )}
+
+          {/* TAB: DISPLAY VISIBILITY CONTROLS (ẨN / HIỆN TÊN VẬT THỂ & NHÃN THEO YÊU CẦU CỦA USER) */}
+          {activeTab === 'display' && (
+            <div className="space-y-6 max-w-2xl">
+              <div className="bg-slate-950 p-5 rounded-2xl border border-rose-900/40 space-y-4 shadow-xl">
+                <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+                  <Eye className="w-5 h-5 text-rose-400" />
+                  <div>
+                    <h4 className="text-sm font-black text-white uppercase tracking-wide">
+                      Tùy Chọn Ẩn / Hiện Tên Hiển Thị Của Kệ & Các Vật Thể 3D
+                    </h4>
+                    <p className="text-xs text-slate-400">
+                      Bật hoặc tắt hiển thị tên các dãy kệ, tên các vật thể / thiết bị kho, nhãn 5S và điểm định vị theo ý muốn.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-2">
+                  {/* 1. Toggle Rack Labels */}
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors">
+                    <div>
+                      <div className="text-xs font-bold text-slate-200">Hiển Thị Tên & Mã Các Dãy Kệ</div>
+                      <div className="text-[11px] text-slate-400">Hiện các thẻ nhãn KỆ A, KỆ B, DÃY 01, DÃY 02 trên đỉnh kệ</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleRackLabels(!showRackLabels)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        showRackLabels ? 'bg-emerald-600' : 'bg-slate-700'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          showRackLabels ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* 2. Toggle Facility Labels */}
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors">
+                    <div>
+                      <div className="text-xs font-bold text-slate-200">Hiển Thị Tên Các Vật Thể & Thiết Bị Kho</div>
+                      <div className="text-[11px] text-slate-400">Hiện tên Sàn Mezzanine, Kệ Thép Hộp Kẽm, Băng Tải, Cổng, Cây cảnh...</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleFacilityLabels(!showFacilityLabels)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        showFacilityLabels ? 'bg-emerald-600' : 'bg-slate-700'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          showFacilityLabels ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* 3. Toggle Annotation Labels */}
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors">
+                    <div>
+                      <div className="text-xs font-bold text-slate-200">Hiển Thị Nhãn Chú Thích Khu Vực 5S</div>
+                      <div className="text-[11px] text-slate-400">Hiện chữ LỐI ĐI 5S, BỘ PHẬN GIAO HÀNG, KHU VỰC ĐÓNG GÓI...</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleAnnotationLabels(!showAnnotationLabels)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        showAnnotationLabels ? 'bg-emerald-600' : 'bg-slate-700'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          showAnnotationLabels ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* 4. Toggle Pin Badge */}
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors">
+                    <div>
+                      <div className="text-xs font-bold text-slate-200">Hiển Thị Huy Hiệu & Con Trỏ Vị Trí Hiện Tại (YOU ARE HERE)</div>
+                      <div className="text-[11px] text-slate-400">Hiện kim ghim đỏ định vị và tên ô bạn đang đứng</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => togglePinBadge(!showPinBadge)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        showPinBadge ? 'bg-emerald-600' : 'bg-slate-700'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          showPinBadge ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-emerald-950/60 rounded-xl border border-emerald-800 text-[11px] text-emerald-300 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>Trạng thái ẩn/hiện được tự động lưu vĩnh viễn và áp dụng ngay lập tức cho sơ đồ 3D và khi xuất ảnh chụp!</span>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* TAB 6: BACKUP & JSON */}

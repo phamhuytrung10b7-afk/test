@@ -11,7 +11,7 @@ interface ItemDirectoryTableProps {
 }
 
 export const ItemDirectoryTable: React.FC<ItemDirectoryTableProps> = ({
-  items,
+  items = [],
   selectedItem,
   onSelectItem,
   onOpenUpdateModal,
@@ -20,14 +20,16 @@ export const ItemDirectoryTable: React.FC<ItemDirectoryTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
-  const categories = ['all', ...Array.from(new Set(items.map(i => i.category)))];
+  const safeItems = Array.isArray(items) ? items : [];
+  const categories = ['all', ...Array.from(new Set(safeItems.map(i => i?.category).filter(Boolean)))];
 
-  const filteredItems = items.filter(item => {
+  const filteredItems = safeItems.filter(item => {
+    if (!item) return false;
     const matchesSearch = 
-      item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.spec.toLowerCase().includes(searchTerm.toLowerCase());
+      (item.code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.location || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.spec || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
 

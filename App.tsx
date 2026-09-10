@@ -88,7 +88,7 @@ export default function App() {
   const [selectedRackId, setSelectedRackId] = useState<string | null>(initialData.currentPosition?.rackId || 'A');
 
   // Navigation View Modes
-  const [viewMode, setViewMode] = useState<'board' | '3d_map' | 'single_rack' | 'slotting'>(initialData.viewMode || 'board');
+  const [viewMode, setViewMode] = useState<'board' | '3d_map' | 'single_rack' | 'single_rack_4t3k' | 'slotting'>(initialData.viewMode || 'board');
 
   // LocalStorage Auto-save & Status indicator states
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(getLastSavedTimestamp());
@@ -424,9 +424,23 @@ export default function App() {
                   ? 'bg-teal-700 text-white shadow-sm'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
               }`}
+              title="Xem mô phỏng 3D chi tiết Kệ Mẫu 1 (3 Tầng, 5 Khoang, 2 Vị Trí = 30 Vị Trí)"
             >
               <Box className="w-3.5 h-3.5" />
-              <span>CHI TIẾT 1 KỆ 3D</span>
+              <span>CHI TIẾT KỆ 3D (3T - 5K)</span>
+            </button>
+
+            <button
+              onClick={() => setViewMode('single_rack_4t3k')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === 'single_rack_4t3k'
+                  ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-sm ring-1 ring-amber-300'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+              }`}
+              title="Xem mô phỏng 3D chi tiết Kệ Mẫu 2 (4 Tầng, 3 Khoang, 3 Vị Trí = 36 Vị Trí)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+              <span>CHI TIẾT KỆ 3D (4T - 3K - 3VT)</span>
             </button>
 
             <button
@@ -631,7 +645,7 @@ export default function App() {
           </div>
         )}
 
-        {/* MODE: DETAILED 3D SINGLE RACK VIEW ON WHITE BACKGROUND */}
+        {/* MODE: DETAILED 3D SINGLE RACK VIEW - MẪU 1 (3 TẦNG / 5 KHOANG / 2 VỊ TRÍ) */}
         {viewMode === 'single_rack' && (
           <SingleRack3DDetailView
             racks={racks}
@@ -644,6 +658,30 @@ export default function App() {
             onPositionChange={handlePositionChange}
             onOpenUpdateModal={handleOpenUpdateModal}
             onOpenPrintModal={handleOpenPrintModal}
+            tierCount={3}
+            defaultBays={['01', '02', '03', '04', '05']}
+            defaultItemsPerBay={2}
+            modelName="MẪU 1 (3 TẦNG / 5 KHOANG / 2 VỊ TRÍ - 30 Ô)"
+          />
+        )}
+
+        {/* MODE: DETAILED 3D SINGLE RACK VIEW - MẪU 2 (4 TẦNG / 3 KHOANG / 3 VỊ TRÍ) */}
+        {viewMode === 'single_rack_4t3k' && (
+          <SingleRack3DDetailView
+            racks={racks}
+            selectedRackId={selectedRackId || 'A'}
+            onSelectRack={handleSelectRack}
+            onUpdateRacks={setRacksWithHistory}
+            items={items}
+            onUpdateItems={setItemsWithHistory}
+            currentPosition={currentPosition}
+            onPositionChange={handlePositionChange}
+            onOpenUpdateModal={handleOpenUpdateModal}
+            onOpenPrintModal={handleOpenPrintModal}
+            tierCount={4}
+            defaultBays={['01', '02', '03']}
+            defaultItemsPerBay={3}
+            modelName="MẪU 2 (4 TẦNG / 3 KHOANG / 3 VỊ TRÍ - 36 Ô)"
           />
         )}
 

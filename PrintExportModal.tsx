@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BoardConfig, InventoryItem, SafetyRule, WarehousePosition, WarehouseRack } from './types';
-import { X, Printer, Download, Layers, FileText, Compass, Box, Sparkles, RefreshCw, Upload, Trash2, Edit3, Save, Plus, RotateCcw, Image as ImageIcon, Check, ExternalLink } from 'lucide-react';
+import { X, Printer, Download, Layers, FileText, Compass, Box, Sparkles, RefreshCw, Upload, Trash2, Edit3, Save, Plus, RotateCcw, Image as ImageIcon, Check, ExternalLink, QrCode } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
 import { IsometricRackSVG } from './IsometricRackSVG';
 
 interface CustomTableItem {
@@ -67,7 +68,7 @@ interface PrintExportModalProps {
   racks: WarehouseRack[];
   items: InventoryItem[];
   safetyRules: SafetyRule[];
-  initialPdfTab?: 'pdf1' | 'pdf2' | 'pdf3' | 'pdf4';
+  initialPdfTab?: 'pdf1' | 'pdf2' | 'pdf3' | 'pdf4' | 'pdf5';
   selectedRackId?: string | null;
   pdf4Config?: any;
 }
@@ -77,14 +78,14 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   onClose,
   boardConfig,
   currentPosition,
-  racks,
-  items,
-  safetyRules,
+  racks = [],
+  items = [],
+  safetyRules = [],
   initialPdfTab = 'pdf1',
   selectedRackId = 'C',
   pdf4Config,
 }) => {
-  const [activePdfTab, setActivePdfTab] = useState<'pdf1' | 'pdf2' | 'pdf3' | 'pdf4'>(initialPdfTab);
+  const [activePdfTab, setActivePdfTab] = useState<'pdf1' | 'pdf2' | 'pdf3' | 'pdf4' | 'pdf5'>(initialPdfTab);
   const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
   const [exportProgressText, setExportProgressText] = useState<string>('');
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
@@ -267,6 +268,77 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
     }
   };
 
+  // State & QR generation for Tab 5 (High-Tier QR Labels)
+  const tab5TierCount = pdf4Config?.tierCount || 3;
+  const tab5BayNumbers = pdf4Config?.bayNumbers || ['01', '02', '03', '04', '05'];
+  const tab5ItemsPerBay = pdf4Config?.itemsPerBay || 2;
+  const [tab5Layout, setTab5Layout] = useState<'4_per_page' | '2_per_page' | '1_per_page'>('4_per_page');
+  const [tab5SelectedTiers, setTab5SelectedTiers] = useState<number[]>(tab5TierCount === 4 ? [4, 3] : [3]);
+  const [tab5Cards, setTab5Cards] = useState<Array<{
+    id: string;
+    bay: string;
+    tier: number;
+    slot: number;
+    slotLabel: string;
+    qrDataUrl?: string;
+  }>>([]);
+
+  useEffect(() => {
+    setTab5SelectedTiers(tab5TierCount === 4 ? [4, 3] : [3]);
+  }, [tab5TierCount, activeRackId]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const generateTab5Cards = async () => {
+      const list: Array<{
+        id: string;
+        bay: string;
+        tier: number;
+        slot: number;
+        slotLabel: string;
+        qrDataUrl?: string;
+      }> = [];
+
+      const sortedTiers = [...tab5SelectedTiers].sort((a, b) => b - a);
+      for (const t of sortedTiers) {
+        for (const b of tab5BayNumbers) {
+          for (let s = 1; s <= tab5ItemsPerBay; s++) {
+            const key = `${activeRackId}-${b}-${t}-${s}`;
+            let slotLabel = '';
+            if (pdf4Config?.customSlotLabels && pdf4Config.customSlotLabels[key]) {
+              slotLabel = pdf4Config.customSlotLabels[key];
+            } else {
+              const bIdx = Math.max(0, tab5BayNumbers.indexOf(b));
+              const seq = bIdx * (tab5TierCount * tab5ItemsPerBay) + (t - 1) * tab5ItemsPerBay + s;
+              slotLabel = `C${seq < 10 ? '0' + seq : seq}`;
+            }
+
+            try {
+              const qrDataUrl = await QRCode.toDataURL(slotLabel, {
+                width: 300,
+                margin: 1,
+                errorCorrectionLevel: 'M',
+                color: { dark: '#000000', light: '#ffffff' }
+              });
+              list.push({ id: key, bay: b, tier: t, slot: s, slotLabel, qrDataUrl });
+            } catch (err) {
+              list.push({ id: key, bay: b, tier: t, slot: s, slotLabel });
+            }
+          }
+        }
+      }
+
+      if (isMounted) {
+        setTab5Cards(list);
+      }
+    };
+
+    generateTab5Cards();
+    return () => {
+      isMounted = false;
+    };
+  }, [activeRackId, tab5TierCount, tab5BayNumbers, tab5ItemsPerBay, pdf4Config, tab5SelectedTiers]);
+
   // Helper function to convert oklch and oklab color strings to rgb/rgba format for html2canvas compatibility
   const parseAndConvertModernColors = (str: string): string => {
     if (!str) return str;
@@ -447,7 +519,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   };
 
   // Open PDF directly in a new browser tab (bypasses iframe download restrictions)
-  const handleOpenPdfInNewTab = async (pdfType: 'pdf1' | 'pdf2' | 'pdf3' | 'pdf4') => {
+  const handleOpenPdfInNewTab = async (pdfType: 'pdf1' | 'pdf2' | 'pdf3' | 'pdf4' | 'pdf5') => {
     setIsEditMode(false);
     setIsExportingPdf(true);
     setExportProgressText('Đang khởi tạo & mở PDF trong tab mới...');
@@ -497,7 +569,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   };
 
   // Helper to generate and download PDF using html2canvas & jsPDF
-  const handleDownloadPdf = async (pdfType: 'pdf1' | 'pdf2' | 'pdf3' | 'pdf4' | 'all') => {
+  const handleDownloadPdf = async (pdfType: 'pdf1' | 'pdf2' | 'pdf3' | 'pdf4' | 'pdf5' | 'all') => {
     // Automatically turn off edit mode before rendering PDF
     setIsEditMode(false);
     setIsExportingPdf(true);
@@ -505,11 +577,11 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
 
     try {
       if (pdfType === 'all') {
-        const tabs: ('pdf1' | 'pdf2' | 'pdf3' | 'pdf4')[] = ['pdf1', 'pdf2', 'pdf3', 'pdf4'];
+        const tabs: ('pdf1' | 'pdf2' | 'pdf3' | 'pdf4' | 'pdf5')[] = ['pdf1', 'pdf2', 'pdf3', 'pdf4', 'pdf5'];
         for (let i = 0; i < tabs.length; i++) {
           const tab = tabs[i];
           setActivePdfTab(tab);
-          setExportProgressText(`Đang xử lý PDF ${i + 1}/4...`);
+          setExportProgressText(`Đang xử lý PDF ${i + 1}/5...`);
           await new Promise(r => setTimeout(r, 450));
           
           const element = document.getElementById(`printable-pdf-container-${tab}`);
@@ -536,7 +608,8 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
               pdf1: `PDF1_SoDoTongQuanKho_${pdfData.pdf1.warehouseCode}.pdf`,
               pdf2: `PDF2_ChiTietVatTuKe_${pdfData.pdf2.rackId}.pdf`,
               pdf3: `PDF3_HuongDanDocDiaChiKe5S.pdf`,
-              pdf4: `PDF4_SoDo3DChiTietKe_${pdfData.pdf4.rackId}.pdf`
+              pdf4: `PDF4_SoDo3DChiTietKe_${pdfData.pdf4.rackId}.pdf`,
+              pdf5: `PDF5_MaQRViTriTangCao_Ke_${activeRackId}.pdf`
             };
             triggerBlobDownload(pdf, fileNames[tab]);
           }
@@ -549,7 +622,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
           const canvas = await html2canvas(element, { 
             scale: 2, 
             useCORS: true, 
-            logging: false,
+            logging: false, 
             onclone: (clonedDoc) => {
               sanitizeClonedDocForHtml2Canvas(clonedDoc);
             }
@@ -568,7 +641,8 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
             pdf1: `PDF1_SoDoTongQuanKho_${pdfData.pdf1.warehouseCode}.pdf`,
             pdf2: `PDF2_ChiTietVatTuKe_${pdfData.pdf2.rackId}.pdf`,
             pdf3: `PDF3_HuongDanDocDiaChiKe5S.pdf`,
-            pdf4: `PDF4_SoDo3DChiTietKe_${pdfData.pdf4.rackId}.pdf`
+            pdf4: `PDF4_SoDo3DChiTietKe_${pdfData.pdf4.rackId}.pdf`,
+            pdf5: `PDF5_MaQRViTriTangCao_Ke_${activeRackId}.pdf`
           };
           triggerBlobDownload(pdf, fileNames[pdfType]);
         }
@@ -678,7 +752,21 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
               }`}
             >
               <Box className="w-4 h-4 text-rose-400" />
-              <span>PDF 4: Sơ Đồ 3D Chi Tiết 1 Kệ (Ảnh 5)</span>
+              <span>PDF 4: Sơ Đồ 3D Kệ (Ảnh 5)</span>
+            </button>
+
+            {/* Tab 5: High-Tier QR Code Cards */}
+            <button
+              type="button"
+              onClick={() => setActivePdfTab('pdf5')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                activePdfTab === 'pdf5'
+                  ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-400 ring-offset-1'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+              }`}
+            >
+              <QrCode className="w-4 h-4 text-yellow-300" />
+              <span>PDF 5: Thẻ Mã QR Tầng Cao (Ảnh 6)</span>
             </button>
 
           </div>
@@ -1057,7 +1145,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
               {/* 5 Bays x 3 Tiers Matrix Grid Layout */}
               <div className="bg-slate-50 p-4 rounded-xl border-2 border-slate-300 flex flex-col gap-3">
                 <div className="grid grid-cols-5 gap-3">
-                  {pdfData.pdf2.bayNames.map((bTitle, bIdx) => {
+                  {(pdfData.pdf2?.bayNames || ['KHOANG 01', 'KHOANG 02', 'KHOANG 03', 'KHOANG 04', 'KHOANG 05']).map((bTitle, bIdx) => {
                     const bayNum = (bIdx + 1).toString().padStart(2, '0');
                     return (
                       <div key={`pdf2-bay-${bIdx}`} className="flex flex-col gap-2">
@@ -1068,7 +1156,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                               type="text"
                               value={bTitle}
                               onChange={(e) => {
-                                const newBays = [...pdfData.pdf2.bayNames];
+                                const newBays = [...(pdfData.pdf2?.bayNames || ['KHOANG 01', 'KHOANG 02', 'KHOANG 03', 'KHOANG 04', 'KHOANG 05'])];
                                 newBays[bIdx] = e.target.value;
                                 setPdfData({ ...pdfData, pdf2: { ...pdfData.pdf2, bayNames: newBays } });
                               }}
@@ -1578,155 +1666,232 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
           )}
 
           {/* ========================================================================= */}
-          {/* PDF 4: CHI TIẾT TRONG 1 KỆ SƠ ĐỒ (MÔ PHỎNG 3D) (ẢNH 5) - EDITABLE */}
+          {/* PDF 4: CHI TIẾT TRONG 1 KỆ SƠ ĐỒ (MÔ PHỎNG 3D) - CHỈ HIỂN THỊ SƠ ĐỒ 3D */}
           {/* ========================================================================= */}
           {activePdfTab === 'pdf4' && (
             <div 
               id="printable-pdf-container-pdf4"
-              className="bg-white w-full max-w-[1100px] p-6 rounded-xl border-2 border-slate-400 shadow-2xl flex flex-col gap-4 text-slate-900 relative"
+              className="bg-white w-full max-w-[1100px] p-4 sm:p-6 rounded-2xl flex flex-col items-center justify-center text-slate-900 relative shadow-xl"
             >
-              {/* Header Bar */}
-              <div className="border-b-4 border-indigo-700 pb-3 flex items-center justify-between">
-                <div className="bg-red-600 text-white font-black text-xl px-4 py-1.5 rounded tracking-wider">
-                  {isEditMode ? (
-                    <input
-                      type="text"
-                      value={pdfData.pdf4.companyLogoText}
-                      onChange={(e) => setPdfData({
-                        ...pdfData,
-                        pdf4: { ...pdfData.pdf4, companyLogoText: e.target.value }
-                      })}
-                      className="bg-red-700 text-white font-black text-xl px-1 rounded w-32 outline-none"
-                    />
-                  ) : (
-                    pdfData.pdf4.companyLogoText
-                  )}
-                </div>
-                <div className="text-center flex flex-col items-center">
-                  {isEditMode ? (
-                    <>
-                      <input
-                        type="text"
-                        value={pdfData.pdf4.title}
-                        onChange={(e) => setPdfData({
-                          ...pdfData,
-                          pdf4: { ...pdfData.pdf4, title: e.target.value }
-                        })}
-                        className="text-2xl font-black uppercase text-center border-b border-slate-300 px-2 py-0.5 w-full max-w-lg"
-                      />
-                      <input
-                        type="text"
-                        value={pdfData.pdf4.subtitle}
-                        onChange={(e) => setPdfData({
-                          ...pdfData,
-                          pdf4: { ...pdfData.pdf4, subtitle: e.target.value }
-                        })}
-                        className="text-xs font-bold text-indigo-700 text-center border-b border-slate-200 mt-1 w-full max-w-xl"
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">
-                        {pdfData.pdf4.title}
-                      </h1>
-                      <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider block mt-0.5">
-                        {pdfData.pdf4.subtitle}
-                      </span>
-                    </>
-                  )}
-                </div>
-                <div className="bg-indigo-700 text-white font-mono font-black text-sm px-3.5 py-1.5 rounded-lg border border-indigo-800 shadow-inner flex items-center gap-1">
-                  <span>CAD 3D RACK</span>
-                </div>
-              </div>
-
-              {/* Upload 3D Image or Customize Bar */}
-              <div className="flex items-center justify-between bg-slate-100 p-2 rounded-xl border border-slate-200">
-                <span className="text-xs font-bold text-slate-700">Tùy biến hình ảnh 3D Kệ:</span>
-                <div className="flex items-center gap-2">
-                  <label className="bg-indigo-700 hover:bg-indigo-600 text-white font-bold text-xs px-3 py-1 rounded-lg cursor-pointer transition-colors flex items-center gap-1.5 shadow-sm">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Thả / Tải Ảnh 3D Kệ Mới</span>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={(e) => handleImageUpload('pdf4', e)} 
-                      className="hidden" 
-                    />
-                  </label>
-
-                  {pdfData.pdf4.customImage && (
-                    <button
-                      type="button"
-                      onClick={() => handleClearImage('pdf4')}
-                      className="bg-red-600/80 hover:bg-red-500 text-white p-1 px-2 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Xóa Ảnh</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* CUSTOM UPLOADED IMAGE OR DEFAULT 3D ISOMETRIC CAD SVG */}
-              <div className="bg-white p-4 rounded-xl border-2 border-slate-300 flex flex-col items-center justify-center min-h-[380px]">
-                {pdfData.pdf4.customImage ? (
-                  <img 
-                    src={pdfData.pdf4.customImage} 
-                    alt="Sơ đồ 3D Kệ đã tải lên" 
-                    className="w-full h-auto max-h-[420px] object-contain rounded-lg"
-                  />
-                ) : (
+              {pdfData.pdf4.customImage ? (
+                <img 
+                  src={pdfData.pdf4.customImage} 
+                  alt="Sơ đồ 3D Kệ đã tải lên" 
+                  className="w-full h-auto max-h-[580px] object-contain"
+                />
+              ) : (
+                <div className="w-full flex items-center justify-center">
                   <IsometricRackSVG
                     rackId={selectedRackId || 'A'}
                     storageType={pdf4Config?.storageType || 'pallets'}
+                    tierCount={pdf4Config?.tierCount || 3}
                     itemsPerBay={pdf4Config?.itemsPerBay || 2}
                     tierColors={pdf4Config?.tierColors || { 3: '#f59e0b', 2: '#3b82f6', 1: '#dc2626' }}
-                    bayNumbers={['01', '02', '03', '04', '05']}
-                    selectedBay={null}
-                    selectedTier={null}
-                    selectedSlot={null}
+                    bayNumbers={pdf4Config?.bayNumbers || ['01', '02', '03', '04', '05']}
+                    selectedBay={undefined}
+                    selectedTier={undefined}
+                    selectedSlot={undefined}
                     onSelectSlot={() => {}}
                     getSlotLabel={(bay, tier, slot) => {
                       const key = `${selectedRackId || 'A'}-${bay}-${tier}-${slot}`;
                       if (pdf4Config?.customSlotLabels && pdf4Config.customSlotLabels[key]) {
                         return pdf4Config.customSlotLabels[key];
                       }
-                      const stType = pdf4Config?.storageType || 'pallets';
-                      if (stType === 'pallets') return `P-${slot}`;
-                      if (stType === 'bins') return `#${slot}`;
-                      return `C-${slot}`;
+                      const bList = pdf4Config?.bayNumbers || ['01', '02', '03', '04', '05'];
+                      const itPerBay = pdf4Config?.itemsPerBay || 2;
+                      const tCount = pdf4Config?.tierCount || 3;
+                      const bIdx = Math.max(0, bList.indexOf(bay));
+                      const seq = bIdx * (tCount * itPerBay) + (tier - 1) * itPerBay + slot;
+                      return `C${seq < 10 ? '0' + seq : seq}`;
                     }}
                     getSlotItem={(bay, tier, slot) => {
                       const loc = `${selectedRackId || 'A'}-${bay}-${tier}-${slot}`;
-                      return items.find(i => i.locationCode === loc);
+                      return items.find(i => i.location === loc || (i.rackId === (selectedRackId || 'A') && i.bayId === bay && i.tier === tier && (i.slot === slot || (!i.slot && slot === 1))));
                     }}
                     tagFontSize={pdf4Config?.tagFontSize || 14}
                   />
-                )}
-              </div>
+                </div>
+              )}
+            </div>
+          )}
 
-              {/* (Editable Matrix Grid removed to enforce consistency with 3D view) */}
-
-              {/* Bottom Summary Footer */}
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-300 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-3.5 h-3.5 rounded bg-amber-500" />
-                    <span className="font-bold text-slate-700">{pdfData.pdf4.tier3Label}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-3.5 h-3.5 rounded bg-blue-600" />
-                    <span className="font-bold text-slate-700">{pdfData.pdf4.tier2Label}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-3.5 h-3.5 rounded bg-red-600" />
-                    <span className="font-bold text-slate-700">{pdfData.pdf4.tier1Label}</span>
+          {/* ========================================================================= */}
+          {/* PDF 5: THẺ MÃ QR VỊ TRÍ TẦNG CAO (ẢNH MẪU 6) - KHỔ A4 NGANG */}
+          {/* ========================================================================= */}
+          {activePdfTab === 'pdf5' && (
+            <div className="w-full max-w-[1100px] flex flex-col items-center gap-4">
+              
+              {/* Tab 5 Tooling Bar */}
+              <div className="w-full bg-slate-900 text-white p-3 rounded-2xl border border-slate-700 shadow-md flex flex-wrap items-center justify-between gap-3 no-print">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-amber-400">Bố cục in A4:</span>
+                  <div className="flex items-center gap-1.5 bg-slate-800 p-1 rounded-xl border border-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => setTab5Layout('4_per_page')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        tab5Layout === '4_per_page' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      4 Thẻ / Trang
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTab5Layout('2_per_page')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        tab5Layout === '2_per_page' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      2 Thẻ / Trang
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTab5Layout('1_per_page')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        tab5Layout === '1_per_page' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      1 Thẻ Lớn / Trang
+                    </button>
                   </div>
                 </div>
 
-                <span className="font-mono font-bold text-slate-500">KỆ {pdfData.pdf4.rackId} • CAD 3D MODEL</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-400">Chọn tầng xuất QR:</span>
+                  {[4, 3, 2, 1].filter(t => t <= tab5TierCount).map(t => {
+                    const isSelected = tab5SelectedTiers.includes(t);
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            if (tab5SelectedTiers.length > 1) {
+                              setTab5SelectedTiers(tab5SelectedTiers.filter(x => x !== t));
+                            }
+                          } else {
+                            setTab5SelectedTiers([...tab5SelectedTiers, t]);
+                          }
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all cursor-pointer border ${
+                          isSelected 
+                            ? 'bg-amber-500 text-slate-950 border-amber-400' 
+                            : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                        }`}
+                      >
+                        Tầng {t} {t === 4 ? '(Cao nhất)' : t === 3 ? '(Tầng 3)' : ''}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+
+              {/* Printable PDF 5 Container */}
+              <div 
+                id="printable-pdf-container-pdf5"
+                className="bg-white w-full p-6 sm:p-8 rounded-2xl flex flex-col text-slate-900 relative shadow-xl border border-slate-200"
+              >
+                {/* Header Banner */}
+                <div className="flex items-center justify-between border-b-2 border-slate-800 pb-3 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-[#dc2626] text-white font-black px-4 py-1.5 rounded-lg text-base tracking-wider shadow-sm">
+                      SUNHOUSE
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-black text-slate-950 tracking-tight uppercase">
+                        BẢNG MÃ QR CODE VỊ TRÍ TẦNG CAO • KỆ {activeRackId}
+                      </h2>
+                      <p className="text-xs font-semibold text-slate-500">
+                        NHÀ MÁY SUNHOUSE BÌNH DƯƠNG • MÃ QR QUÉT VỊ TRÍ TRÊN CAO TẦM THẤP (BIN LOCATION)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black px-3 py-1 rounded-lg shadow-xs">
+                      {tab5Cards.length} VỊ TRÍ MÃ QR
+                    </span>
+                  </div>
+                </div>
+
+                {/* Grid of QR Code Cards */}
+                <div className={`w-full grid gap-4 sm:gap-6 ${
+                  tab5Layout === '4_per_page' ? 'grid-cols-1 md:grid-cols-2' :
+                  tab5Layout === '2_per_page' ? 'grid-cols-1 md:grid-cols-2' :
+                  'grid-cols-1'
+                }`}>
+                  {tab5Cards.map((card) => (
+                    <div
+                      key={card.id}
+                      className="bg-white border-4 border-slate-950 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-between text-center relative shadow-sm overflow-hidden"
+                      style={{ minHeight: tab5Layout === '1_per_page' ? '360px' : '260px' }}
+                    >
+                      {/* Top Header */}
+                      <div className="w-full flex items-center justify-between border-b-2 border-slate-800 pb-2 mb-3">
+                        <div className="flex items-center gap-1.5">
+                          <div className="bg-[#dc2626] text-white font-black px-2 py-0.5 rounded text-[11px]">
+                            SUNHOUSE
+                          </div>
+                          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-tight">
+                            BÌNH DƯƠNG
+                          </span>
+                        </div>
+                        <div className="bg-amber-400 text-slate-950 font-black px-2.5 py-0.5 rounded text-xs border border-slate-950">
+                          KỆ {activeRackId} • KHOANG {card.bay} • TẦNG {card.tier}
+                        </div>
+                      </div>
+
+                      {/* Middle: Large QR and Big Text */}
+                      <div className="w-full flex items-center justify-around gap-4 my-2">
+                        {/* QR Code Container */}
+                        <div className="bg-white p-2 border-2 border-slate-900 rounded-xl shadow-xs flex flex-col items-center">
+                          {card.qrDataUrl ? (
+                            <img 
+                              src={card.qrDataUrl} 
+                              alt={`QR ${card.slotLabel}`}
+                              className="w-28 h-28 sm:w-36 sm:h-36 object-contain"
+                              style={{ minWidth: '120px', minHeight: '120px' }}
+                            />
+                          ) : (
+                            <div className="w-28 h-28 flex items-center justify-center bg-slate-100 text-slate-400 text-xs font-bold">
+                              Đang tạo QR...
+                            </div>
+                          )}
+                          <span className="text-[9px] font-black text-slate-600 mt-1 uppercase">
+                            QUÉT MÃ VỊ TRÍ
+                          </span>
+                        </div>
+
+                        {/* Location Text Big Display */}
+                        <div className="flex flex-col items-center justify-center flex-1">
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            MÃ VỊ TRÍ Ô
+                          </span>
+                          <div className="text-4xl sm:text-5xl font-black text-slate-950 tracking-wider my-1 font-mono border-b-4 border-amber-500 pb-1">
+                            {card.slotLabel}
+                          </div>
+                          <span className="text-xs font-extrabold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200 mt-1">
+                            Ô số {card.slot} • Khoang {card.bay}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Footer Info */}
+                      <div className="w-full bg-slate-100 rounded-lg py-1.5 px-3 mt-3 border border-slate-300 flex items-center justify-between text-[10px] font-bold text-slate-600">
+                        <span>Hệ thống Quản lý Kho 5S Sunhouse</span>
+                        <span className="font-mono text-slate-900">{card.id}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bottom Notice */}
+                <div className="w-full mt-6 pt-3 border-t border-slate-300 flex items-center justify-between text-xs text-slate-500">
+                  <span>In trực tiếp hoặc tải file PDF khổ A4 ngang dán thanh giằng tầng 1 để nhân viên quét tầm thấp</span>
+                  <span className="font-bold text-slate-700">Quy chuẩn nhãn QR Kho Sunhouse</span>
+                </div>
+              </div>
+
             </div>
           )}
 

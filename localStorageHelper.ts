@@ -34,6 +34,7 @@ export const STORAGE_KEYS = {
   CURRENT_POSITION: 'sunhouse_warehouse_current_position',
   VIEW_MODE: 'sunhouse_warehouse_view_mode',
   LAST_SAVED: 'sunhouse_warehouse_last_saved_at',
+  CUSTOM_SLOT_LABELS: 'sunhouse_warehouse_custom_slot_labels',
   APP_VERSION: 'sunhouse_warehouse_version'
 } as const;
 
@@ -80,7 +81,7 @@ export interface StoredWarehouseBundle {
   items: InventoryItem[];
   safetyRules: SafetyRule[];
   currentPosition: WarehousePosition;
-  viewMode: 'board' | '3d_map' | 'slotting';
+  viewMode: 'board' | '3d_map' | 'single_rack' | 'single_rack_4t3k' | 'slotting';
 }
 
 function deduplicateById<T extends { id: string }>(items: T[], prefix: string = 'item'): T[] {
@@ -124,7 +125,7 @@ export function loadAllWarehouseState(): StoredWarehouseBundle {
     items: deduplicateById(loadedItems, 'ITEM'),
     safetyRules: deduplicateById(loadedSafetyRules, 'RULE'),
     currentPosition: loadFromStorage<WarehousePosition>(STORAGE_KEYS.CURRENT_POSITION, defaultPositions[0]),
-    viewMode: loadFromStorage<'board' | '3d_map' | 'slotting'>(STORAGE_KEYS.VIEW_MODE, 'board'),
+    viewMode: loadFromStorage<'board' | '3d_map' | 'single_rack' | 'single_rack_4t3k' | 'slotting'>(STORAGE_KEYS.VIEW_MODE, 'board'),
   };
 }
 
