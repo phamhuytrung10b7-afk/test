@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BoardConfig, InventoryItem, SafetyRule, WarehousePosition, WarehouseRack } from './types';
 import { X, Printer, Download, Layers, FileText, Compass, Box, Sparkles, RefreshCw, Upload, Trash2, Edit3, Save, Plus, RotateCcw, Image as ImageIcon, Check, ExternalLink, QrCode } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { safeHtml2Canvas } from './html2canvasSanitizer';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import { IsometricRackSVG } from './IsometricRackSVG';
@@ -529,13 +529,10 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
       await new Promise(r => setTimeout(r, 200));
       const element = document.getElementById(`printable-pdf-container-${pdfType}`);
       if (element) {
-        const canvas = await html2canvas(element, { 
+        const canvas = await safeHtml2Canvas(element, { 
           scale: 2, 
           useCORS: true, 
-          logging: false,
-          onclone: (clonedDoc) => {
-            sanitizeClonedDocForHtml2Canvas(clonedDoc);
-          }
+          logging: false
         });
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({
@@ -587,13 +584,10 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
           
           const element = document.getElementById(`printable-pdf-container-${tab}`);
           if (element) {
-            const canvas = await html2canvas(element, { 
+            const canvas = await safeHtml2Canvas(element, { 
               scale: 2, 
               useCORS: true, 
-              logging: false,
-              onclone: (clonedDoc) => {
-                sanitizeClonedDocForHtml2Canvas(clonedDoc);
-              }
+              logging: false
             });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
@@ -620,13 +614,10 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
         await new Promise(r => setTimeout(r, 300));
         const element = document.getElementById(`printable-pdf-container-${pdfType}`);
         if (element) {
-          const canvas = await html2canvas(element, { 
+          const canvas = await safeHtml2Canvas(element, { 
             scale: 2, 
             useCORS: true, 
-            logging: false, 
-            onclone: (clonedDoc) => {
-              sanitizeClonedDocForHtml2Canvas(clonedDoc);
-            }
+            logging: false
           });
           const imgData = canvas.toDataURL('image/png');
           const pdf = new jsPDF({

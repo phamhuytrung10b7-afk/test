@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { SunhouseLogo } from './SunhouseLogo';
-import html2canvas from 'html2canvas';
+import { safeHtml2Canvas } from './html2canvasSanitizer';
 
 export interface QRCardItem {
   id: string;
@@ -217,7 +217,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
 
       if (pageElements.length === 0) {
         // Fallback: capture whole element
-        const canvas = await html2canvas(element, {
+        const canvas = await safeHtml2Canvas(element, {
           scale: 2,
           useCORS: true,
           backgroundColor: '#ffffff',
@@ -229,7 +229,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
         for (let i = 0; i < pageElements.length; i++) {
           if (i > 0) pdf.addPage('a4', 'landscape');
           const pageEl = pageElements[i];
-          const canvas = await html2canvas(pageEl, {
+          const canvas = await safeHtml2Canvas(pageEl, {
             scale: 2.5,
             useCORS: true,
             backgroundColor: '#ffffff',
@@ -256,7 +256,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
     if (!cardEl) return;
 
     try {
-      const canvas = await html2canvas(cardEl, {
+      const canvas = await safeHtml2Canvas(cardEl, {
         scale: 3,
         useCORS: true,
         backgroundColor: '#ffffff'

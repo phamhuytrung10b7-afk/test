@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import html2canvas from 'html2canvas';
+import { safeHtml2Canvas } from './html2canvasSanitizer';
 import { ManualDPadController } from './ManualDPadController';
 import { 
   WarehouseRack, 
@@ -234,7 +234,7 @@ export const IsometricWarehouseCanvas: React.FC<IsometricWarehouseCanvasProps> =
     try {
       await new Promise(r => setTimeout(r, 150));
       const element = containerRef.current;
-      const canvas = await html2canvas(element, {
+      const canvas = await safeHtml2Canvas(element, {
         scale: 3, // Ultra crisp 3x resolution
         useCORS: true,
         backgroundColor: screenshotBg === 'clean-white' ? '#ffffff' : screenshotBg === 'studio-slate' ? '#f1f5f9' : '#0f172a',
