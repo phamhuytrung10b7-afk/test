@@ -273,7 +273,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   const tab5TierCount = pdf4Config?.tierCount || 3;
   const tab5BayNumbers = pdf4Config?.bayNumbers || ['01', '02', '03', '04', '05'];
   const tab5ItemsPerBay = pdf4Config?.itemsPerBay || 2;
-  const [tab5Layout, setTab5Layout] = useState<'10_per_page' | '4_per_page' | '2_per_page' | '1_per_page'>('10_per_page');
+  const [tab5Layout, setTab5Layout] = useState<'20_per_page' | '10_per_page' | '4_per_page' | '2_per_page' | '1_per_page'>('10_per_page');
   const [tab5SelectedTiers, setTab5SelectedTiers] = useState<number[]>(tab5TierCount === 4 ? [1, 2, 3, 4] : [1, 2, 3]);
   const [tab5Cards, setTab5Cards] = useState<Array<{
     id: string;
@@ -1720,6 +1720,24 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                   <div className="flex items-center gap-1.5 bg-slate-800 p-1 rounded-xl border border-slate-700">
                     <button
                       type="button"
+                      onClick={() => setTab5Layout('20_per_page')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        tab5Layout === '20_per_page' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      20 Thẻ / Trang (5x4)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTab5Layout('10_per_page')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        tab5Layout === '10_per_page' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      10 Thẻ / Trang (2x5)
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setTab5Layout('4_per_page')}
                       className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                         tab5Layout === '4_per_page' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-300 hover:text-white'
@@ -1805,7 +1823,9 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                 </div>
 
                 {/* Grid of QR Code Cards */}
-                <div className={`w-full grid gap-4 sm:gap-6 ${
+                <div className={`w-full grid gap-3.5 sm:gap-4 ${
+                  tab5Layout === '20_per_page' ? 'grid-cols-2 md:grid-cols-5' :
+                  tab5Layout === '10_per_page' ? 'grid-cols-1 md:grid-cols-2' :
                   tab5Layout === '4_per_page' ? 'grid-cols-1 md:grid-cols-2' :
                   tab5Layout === '2_per_page' ? 'grid-cols-1 md:grid-cols-2' :
                   'grid-cols-1'
@@ -1813,57 +1833,59 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                   {tab5Cards.map((card) => (
                     <div
                       key={card.id}
-                      className="bg-white border-4 border-slate-950 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-between text-center relative shadow-sm overflow-hidden"
-                      style={{ minHeight: tab5Layout === '1_per_page' ? '360px' : '260px' }}
+                      className="bg-white border-2 border-slate-950 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between text-center relative shadow-xs overflow-hidden"
+                      style={{ minHeight: tab5Layout === '20_per_page' ? '125px' : tab5Layout === '10_per_page' ? '118px' : tab5Layout === '1_per_page' ? '360px' : '250px' }}
                     >
                       {/* Top Header */}
-                      <div className="w-full flex items-center justify-between border-b-2 border-slate-800 pb-2 mb-3">
-                        <div className="flex items-center gap-1.5">
-                          <SunhouseLogo className="h-5 w-auto" />
+                      <div className="w-full flex items-center justify-between border-b-2 border-slate-900 pb-1 mb-1.5">
+                        <div className="flex items-center gap-1">
+                          <SunhouseLogo className={tab5Layout === '20_per_page' ? 'h-4 w-auto' : 'h-5 w-auto'} />
                         </div>
-                        <div className="bg-amber-400 text-slate-950 font-black px-2.5 py-0.5 rounded text-xs border border-slate-950">
+                        <div className="bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded text-[10px] border border-slate-950">
                           KỆ {activeRackId} • KHOANG {card.bay} • TẦNG {card.tier}
                         </div>
                       </div>
 
-                      {/* Middle: Large QR and Big Text */}
-                      <div className="w-full flex items-center justify-around gap-4 my-2">
+                      {/* Middle: QR and Text */}
+                      <div className="w-full flex items-center justify-between gap-2 my-1">
+                        {/* Location Text Display */}
+                        <div className="flex flex-col items-start justify-center flex-1 text-left">
+                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                            MÃ VỊ TRÍ Ô
+                          </span>
+                          <div className={`font-black text-slate-950 tracking-wider font-mono my-0.5 ${
+                            tab5Layout === '20_per_page' ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'
+                          }`}>
+                            {card.slotLabel}
+                          </div>
+                          <span className="text-[9px] font-bold text-teal-800 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200">
+                            Ô {card.slot} • Khoang {card.bay}
+                          </span>
+                        </div>
+
                         {/* QR Code Container */}
-                        <div className="bg-white p-2 border-2 border-slate-900 rounded-xl shadow-xs flex flex-col items-center">
+                        <div className="bg-white p-1 border border-slate-900 rounded-lg shadow-xs flex flex-col items-center shrink-0">
                           {card.qrDataUrl ? (
                             <img 
                               src={card.qrDataUrl} 
                               alt={`QR ${card.slotLabel}`}
-                              className="w-28 h-28 sm:w-36 sm:h-36 object-contain"
-                              style={{ minWidth: '120px', minHeight: '120px' }}
+                              className="object-contain"
+                              style={{ 
+                                width: tab5Layout === '20_per_page' ? '54px' : tab5Layout === '10_per_page' ? '120px' : '85px', 
+                                height: tab5Layout === '20_per_page' ? '54px' : tab5Layout === '10_per_page' ? '120px' : '85px' 
+                              }}
                             />
                           ) : (
-                            <div className="w-28 h-28 flex items-center justify-center bg-slate-100 text-slate-400 text-xs font-bold">
+                            <div className="w-12 h-12 flex items-center justify-center bg-slate-100 text-slate-400 text-[10px] font-bold">
                               Đang tạo QR...
                             </div>
                           )}
-                          <span className="text-[9px] font-black text-slate-600 mt-1 uppercase">
-                            QUÉT MÃ VỊ TRÍ
-                          </span>
-                        </div>
-
-                        {/* Location Text Big Display */}
-                        <div className="flex flex-col items-center justify-center flex-1">
-                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            MÃ VỊ TRÍ Ô
-                          </span>
-                          <div className="text-4xl sm:text-5xl font-black text-slate-950 tracking-wider my-1 font-mono border-b-4 border-amber-500 pb-1">
-                            {card.slotLabel}
-                          </div>
-                          <span className="text-xs font-extrabold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200 mt-1">
-                            Ô số {card.slot} • Khoang {card.bay}
-                          </span>
                         </div>
                       </div>
 
                       {/* Footer Info */}
-                      <div className="w-full bg-slate-100 rounded-lg py-1.5 px-3 mt-3 border border-slate-300 flex items-center justify-between text-[10px] font-bold text-slate-600">
-                        <span>Hệ thống Quản lý Kho 5S Sunhouse</span>
+                      <div className="w-full bg-slate-100 rounded py-0.5 px-1.5 mt-1 border border-slate-300 flex items-center justify-between text-[8px] font-bold text-slate-600">
+                        <span>Kho 5S Sunhouse</span>
                         <span className="font-mono text-slate-900">{card.id}</span>
                       </div>
                     </div>

@@ -63,8 +63,8 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
   const [bottomNote, setBottomNote] = useState<string>('MÃ SCAN TỰ ĐỘNG  -  KHO HÀNG');
   
   // Layout mode for printing on A4 Landscape
-  // '10_per_page' (2x5 grid ~ 10 cards), '4_per_page' (2x2 grid), '2_per_page' (2 cards), '1_per_page' (Large)
-  const [layoutMode, setLayoutMode] = useState<'10_per_page' | '4_per_page' | '2_per_page' | '1_per_page'>('10_per_page');
+  // '10_per_page' (2x5 grid ~ 10 cards, QR 40x40mm), '20_per_page' (5x4 grid ~ 20 cards), '4_per_page' (2x2 grid), '2_per_page' (2 cards), '1_per_page' (Large)
+  const [layoutMode, setLayoutMode] = useState<'20_per_page' | '10_per_page' | '4_per_page' | '2_per_page' | '1_per_page'>('10_per_page');
   
   // QR Payload format: 'slot_code' (e.g. C05) or 'full_code' (e.g. A-01-3-1)
   const [qrFormat, setQrFormat] = useState<'slot_code' | 'full_code'>('slot_code');
@@ -273,7 +273,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
   };
 
   // Chunk cards into pages based on layoutMode
-  const itemsPerPage = layoutMode === '10_per_page' ? 10 : layoutMode === '4_per_page' ? 4 : layoutMode === '2_per_page' ? 2 : 1;
+  const itemsPerPage = layoutMode === '20_per_page' ? 20 : layoutMode === '10_per_page' ? 10 : layoutMode === '4_per_page' ? 4 : layoutMode === '2_per_page' ? 2 : 1;
   const chunkedPages: QRCardItem[][] = [];
   for (let i = 0; i < cards.length; i += itemsPerPage) {
     chunkedPages.push(cards.slice(i, i + itemsPerPage));
@@ -381,15 +381,28 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
               <span className="text-slate-600 text-[11px] font-bold px-2 uppercase">BỐ CỤC IN A4:</span>
               <button
                 type="button"
+                onClick={() => setLayoutMode('20_per_page')}
+                className={`px-3 py-1 rounded-lg text-xs transition-all cursor-pointer font-bold ${
+                  layoutMode === '20_per_page'
+                    ? 'bg-indigo-700 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100'
+                }`}
+                title="20 Thẻ / 1 Trang A4 Ngang (5 cột x 4 hàng - Gọn đẹp chuẩn tỷ lệ)"
+              >
+                20 Thẻ / Trang (5x4)
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setLayoutMode('10_per_page')}
                 className={`px-3 py-1 rounded-lg text-xs transition-all cursor-pointer font-bold ${
                   layoutMode === '10_per_page'
                     ? 'bg-indigo-700 text-white shadow-xs'
                     : 'text-slate-700 hover:bg-slate-100'
                 }`}
-                title="10 Thẻ / 1 Trang A4 Ngang (2 cột x 5 hàng)"
+                title="10 Thẻ / 1 Trang A4 (2 cột x 5 hàng - Chuẩn QR 40x40mm dễ quét camera)"
               >
-                10 Thẻ / Trang (2x5)
+                10 Thẻ / Trang (2x5 - Chuẩn 40x40mm)
               </button>
 
               <button
@@ -400,7 +413,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
                     ? 'bg-indigo-700 text-white shadow-xs'
                     : 'text-slate-700 hover:bg-slate-100'
                 }`}
-                title="4 Thẻ / 1 Trang A4 Ngang (QR ~45x45mm chuẩn dán thanh dầm)"
+                title="4 Thẻ / 1 Trang A4 Ngang (2 cột x 2 hàng)"
               >
                 4 Thẻ / Trang (2x2)
               </button>
@@ -413,7 +426,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
                     ? 'bg-indigo-700 text-white shadow-xs'
                     : 'text-slate-700 hover:bg-slate-100'
                 }`}
-                title="2 Thẻ / 1 Trang A4 Ngang (QR ~55x55mm thẻ lớn)"
+                title="2 Thẻ / 1 Trang A4 Ngang"
               >
                 2 Thẻ / Trang
               </button>
@@ -428,7 +441,7 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
                 }`}
                 title="1 Thẻ To / 1 Trang A4 Ngang"
               >
-                1 Thẻ / Trang (Khổ Đại)
+                1 Thẻ / Trang
               </button>
             </div>
 
@@ -528,100 +541,130 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
 
                 {/* Card Grid based on layoutMode */}
                 <div className={`grid flex-1 items-center justify-center ${
-                  layoutMode === '10_per_page'
-                    ? 'grid-cols-2 grid-rows-5 gap-3'
+                  layoutMode === '20_per_page'
+                    ? 'grid-cols-5 grid-rows-4 gap-2 sm:gap-2.5'
+                    : layoutMode === '10_per_page'
+                    ? 'grid-cols-2 grid-rows-5 gap-3.5 sm:gap-4'
                     : layoutMode === '4_per_page'
-                    ? 'grid-cols-1 sm:grid-cols-2 grid-rows-2 gap-5'
+                    ? 'grid-cols-1 sm:grid-cols-2 grid-rows-2 gap-4'
                     : layoutMode === '2_per_page'
-                    ? 'grid-cols-1 sm:grid-cols-2 gap-5'
-                    : 'grid-cols-1 gap-5'
+                    ? 'grid-cols-1 sm:grid-cols-2 gap-4'
+                    : 'grid-cols-1 gap-4'
                 }`}>
                   {pageCards.map((card) => (
                     <div
                       key={card.id}
                       id={`qr-card-${card.id}`}
-                      className={`qr-card-item bg-white border-[2px] border-slate-900 rounded-2xl flex flex-col justify-between shadow-xs relative group transition-transform hover:scale-[1.01] ${
-                        layoutMode === '10_per_page' ? 'p-2 sm:p-2.5' : 'p-4 sm:p-5'
+                      className={`qr-card-item bg-white border-[2px] border-slate-900 rounded-xl flex flex-col justify-between shadow-xs relative group transition-transform hover:scale-[1.01] ${
+                        layoutMode === '20_per_page' 
+                          ? 'p-1.5 sm:p-2' 
+                          : layoutMode === '10_per_page' 
+                          ? 'p-2.5 sm:p-3' 
+                          : 'p-4 sm:p-5'
                       }`}
                       style={{
-                        minHeight: layoutMode === '10_per_page' ? '96px' : layoutMode === '1_per_page' ? '480px' : layoutMode === '2_per_page' ? '320px' : '230px'
+                        minHeight: layoutMode === '20_per_page' 
+                          ? '122px' 
+                          : layoutMode === '10_per_page' 
+                          ? '112px' 
+                          : layoutMode === '1_per_page' 
+                          ? '480px' 
+                          : layoutMode === '2_per_page' 
+                          ? '320px' 
+                          : '230px'
                       }}
                     >
                       {/* Download button on hover (preview mode) */}
-                      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden z-10">
+                      <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity print:hidden z-10">
                         <button
                           type="button"
                           onClick={() => handleDownloadSingleCard(card)}
-                          className="bg-slate-900/90 hover:bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-md cursor-pointer"
+                          className="bg-slate-900/90 hover:bg-slate-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shadow-md cursor-pointer"
                           title="Tải ảnh thẻ này (PNG)"
                         >
                           <Download className="w-3 h-3 text-cyan-300" />
-                          <span>Tải PNG</span>
+                          <span>PNG</span>
                         </button>
                       </div>
 
                       {/* TOP SECTION: COMPANY LOGO & NAME */}
-                      <div className="flex items-center justify-between gap-3 pb-2.5 border-b-2 border-slate-900">
+                      <div className={`flex items-center justify-between gap-1.5 border-b-2 border-slate-900 ${
+                        layoutMode === '20_per_page' ? 'pb-1' : 'pb-2'
+                      }`}>
                         {/* Sunhouse Logo */}
                         <div className="shrink-0">
-                          <SunhouseLogo className="h-7 w-auto" />
+                          <SunhouseLogo className={layoutMode === '20_per_page' ? 'h-4 w-auto' : 'h-6 sm:h-7 w-auto'} />
                         </div>
 
                         {/* Company & Branch Text */}
-                        <div className="flex-1 text-center flex flex-col items-center justify-center">
-                          <h3 className="text-[11px] sm:text-xs font-black uppercase text-slate-900 tracking-tight leading-tight">
+                        <div className="flex-1 text-center flex flex-col items-center justify-center min-w-0">
+                          <h3 className={`font-black uppercase text-slate-900 tracking-tight leading-tight truncate w-full ${
+                            layoutMode === '20_per_page' ? 'text-[8px] sm:text-[8.5px]' : 'text-[11px] sm:text-xs'
+                          }`}>
                             {editableCompanyName}
                           </h3>
-                          <h4 className="text-[10px] sm:text-[11px] font-bold uppercase text-slate-900 tracking-wider mt-0.5">
-                            {editableBranchName}
-                          </h4>
+                          {layoutMode !== '20_per_page' && (
+                            <h4 className="text-[10px] sm:text-[11px] font-bold uppercase text-slate-900 tracking-wider mt-0.5">
+                              {editableBranchName}
+                            </h4>
+                          )}
                         </div>
                       </div>
 
                       {/* MIDDLE SECTION: LOCATION INFO (LEFT) & QR CODE (RIGHT) */}
-                      <div className="flex items-center justify-between gap-4 py-3 flex-1">
+                      <div className={`flex items-center justify-between gap-1.5 flex-1 ${
+                        layoutMode === '20_per_page' ? 'py-1' : 'py-2.5'
+                      }`}>
                         
                         {/* Left Column: Label & Hierarchy Details */}
-                        <div className="flex flex-col justify-center flex-1 pl-1">
-                          <span className="text-sm sm:text-base font-black text-slate-900 tracking-wide uppercase">
+                        <div className="flex flex-col justify-center flex-1 pl-0.5 min-w-0">
+                          <span className={`font-black text-slate-900 tracking-wide uppercase ${
+                            layoutMode === '20_per_page' ? 'text-[8px] sm:text-[8.5px]' : 'text-xs sm:text-sm'
+                          }`}>
                             VỊ TRÍ KỆ
                           </span>
 
-                          <span className={`font-black text-slate-950 tracking-tighter leading-none my-1 font-mono ${
-                            layoutMode === '1_per_page' 
-                              ? 'text-7xl sm:text-8xl' 
+                          <span className={`font-black text-slate-950 tracking-tighter leading-none font-mono ${
+                            layoutMode === '20_per_page'
+                              ? 'text-2xl sm:text-3xl my-0.5'
+                              : layoutMode === '10_per_page'
+                              ? 'text-3xl sm:text-4xl my-1'
+                              : layoutMode === '1_per_page' 
+                              ? 'text-7xl sm:text-8xl my-1' 
                               : layoutMode === '2_per_page'
-                              ? 'text-5xl sm:text-6xl'
-                              : 'text-4xl sm:text-5xl'
+                              ? 'text-5xl sm:text-6xl my-1'
+                              : 'text-4xl sm:text-5xl my-1'
                           }`}>
                             {card.slotLabel}
                           </span>
 
-                          <div className="text-xs sm:text-sm font-bold text-slate-800 mt-1 flex flex-wrap items-center gap-1">
+                          <div className={`font-bold text-slate-800 flex flex-wrap items-center gap-0.5 ${
+                            layoutMode === '20_per_page' ? 'text-[8px] sm:text-[8.5px]' : 'text-xs sm:text-sm mt-0.5 gap-1'
+                          }`}>
                             <span>Khoang {card.bay}</span>
                             <span>-</span>
                             <span>Tầng {card.tier}</span>
                             <span>-</span>
-                            <span>Vị trí {card.slot}</span>
+                            <span>VT {card.slot}</span>
                           </div>
                         </div>
 
-                        {/* Right Column: Crisp QR Code (Min 40x40mm) */}
-                        <div className="shrink-0 flex items-center justify-center pr-1">
+                        {/* Right Column: Crisp QR Code (Guaranteed 40x40mm for easy camera scan) */}
+                        <div className="shrink-0 flex items-center justify-center border border-slate-900/10 p-1 rounded-lg bg-white shadow-xs">
                           {card.qrDataUrl ? (
                             <img
                               src={card.qrDataUrl}
                               alt={`QR Code ${card.slotLabel}`}
                               className="object-contain"
                               style={{
-                                width: layoutMode === '1_per_page' ? '180px' : layoutMode === '2_per_page' ? '125px' : '95px',
-                                height: layoutMode === '1_per_page' ? '180px' : layoutMode === '2_per_page' ? '125px' : '95px',
-                                minWidth: '85px',
-                                minHeight: '85px'
+                                width: layoutMode === '20_per_page' ? '56px' : layoutMode === '10_per_page' ? '120px' : layoutMode === '1_per_page' ? '180px' : layoutMode === '2_per_page' ? '125px' : '95px',
+                                height: layoutMode === '20_per_page' ? '56px' : layoutMode === '10_per_page' ? '120px' : layoutMode === '1_per_page' ? '180px' : layoutMode === '2_per_page' ? '125px' : '95px',
+                                minWidth: layoutMode === '20_per_page' ? '48px' : layoutMode === '10_per_page' ? '110px' : '70px',
+                                minHeight: layoutMode === '20_per_page' ? '48px' : layoutMode === '10_per_page' ? '110px' : '70px'
                               }}
                             />
                           ) : (
-                            <div className="w-24 h-24 bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-xs text-slate-400">
+                            <div className="w-12 h-12 bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-[10px] text-slate-400">
                               Đang tạo QR...
                             </div>
                           )}
@@ -630,8 +673,12 @@ export const HighTierQRCardModal: React.FC<HighTierQRCardModalProps> = ({
                       </div>
 
                       {/* BOTTOM SECTION: SCAN NOTICE DIVIDER */}
-                      <div className="pt-2 border-t-2 border-slate-900 text-center">
-                        <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-900 block font-mono">
+                      <div className={`border-t-2 border-slate-900 text-center ${
+                        layoutMode === '20_per_page' ? 'pt-0.5' : 'pt-1.5'
+                      }`}>
+                        <span className={`font-bold uppercase tracking-wider text-slate-900 block font-mono ${
+                          layoutMode === '20_per_page' ? 'text-[7.5px] sm:text-[8px]' : 'text-[10px] sm:text-[11px]'
+                        }`}>
                           {bottomNote}
                         </span>
                       </div>
