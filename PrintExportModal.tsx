@@ -91,6 +91,18 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   const [exportProgressText, setExportProgressText] = useState<string>('');
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
+  const is4TierRack = pdf4Config?.tierCount === 4 || (pdf4Config?.bayNumbers && pdf4Config.bayNumbers.length <= 3);
+  const [pdf4FrameSize, setPdf4FrameSize] = useState<'180x200' | '270x200'>(
+    is4TierRack ? '180x200' : '270x200'
+  );
+  const [pdf4PageOrientation, setPdf4PageOrientation] = useState<'landscape' | 'portrait'>('landscape');
+
+  useEffect(() => {
+    if (pdf4Config?.tierCount === 4 || (pdf4Config?.bayNumbers && pdf4Config.bayNumbers.length <= 3)) {
+      setPdf4FrameSize('180x200');
+    }
+  }, [pdf4Config]);
+
   const activeRackId = selectedRackId || currentPosition.rackId || 'C';
   const currentRack = racks.find(r => r.id === activeRackId || r.name === activeRackId);
   const activeRackDisplayName = pdf4Config?.rackDisplayName || currentRack?.name || (activeRackId.toUpperCase().startsWith('KỆ') || activeRackId.toUpperCase().startsWith('DÃY') ? activeRackId : `KỆ ${activeRackId}`);
@@ -548,28 +560,33 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
     }
   };
 
-  // Helper to render image onto A4 Landscape PDF within a centered 270x200mm frame with a black cut border
-  const renderCanvasToPdfFrame = (pdf: jsPDF, canvas: HTMLCanvasElement) => {
-    const pdfWidth = 297;  // A4 Landscape Width (mm)
-    const pdfHeight = 210; // A4 Landscape Height (mm)
+  // Helper to render image onto A4 PDF within a centered custom frame (e.g. 180x200mm or 270x200mm) with a black cut border
+  const renderCanvasToPdfFrame = (
+    pdf: jsPDF, 
+    canvas: HTMLCanvasElement, 
+    customFrameW?: number, 
+    customFrameH?: number
+  ) => {
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
 
-    // User requested frame dimension: 270mm width x 200mm height
-    const frameW = 270;
-    const frameH = 200;
+    // User requested frame dimension: 180mm width x 200mm height for 4T-3K-3VT, or 270x200mm for standard wide racks
+    const frameW = customFrameW || 270;
+    const frameH = customFrameH || 200;
 
-    // Center 270x200mm frame on A4 page
-    const frameX = (pdfWidth - frameW) / 2; // 13.5 mm
-    const frameY = (pdfHeight - frameH) / 2; // 5.0 mm
+    // Center frame on A4 page
+    const frameX = Math.max(0, (pdfWidth - frameW) / 2);
+    const frameY = Math.max(0, (pdfHeight - frameH) / 2);
 
-    // Draw crisp black cut border (270x200mm)
+    // Draw crisp black cut border
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.6);
     pdf.rect(frameX, frameY, frameW, frameH);
 
     // Fit content inside frame with 1.5mm inner margin
     const innerMargin = 1.5;
-    const maxW = frameW - innerMargin * 2; // 267 mm
-    const maxH = frameH - innerMargin * 2; // 197 mm
+    const maxW = frameW - innerMargin * 2;
+    const maxH = frameH - innerMargin * 2;
 
     const imgData = canvas.toDataURL('image/png');
     const canvasRatio = canvas.width / canvas.height;
@@ -582,7 +599,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
       renderW = renderH * canvasRatio;
     }
 
-    // Center image inside the 270x200mm frame
+    // Center image inside the specified frame
     const imgX = frameX + (frameW - renderW) / 2;
     const imgY = frameY + (frameH - renderH) / 2;
 
@@ -599,19 +616,24 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
       await new Promise(r => setTimeout(r, 200));
       const element = document.getElementById(`printable-pdf-container-${pdfType}`);
       if (element) {
+        const isPdf4_180x200 = pdfType === 'pdf4' && pdf4FrameSize === '180x200';
+        const targetFrameW = isPdf4_180x200 ? 180 : 270;
+        const targetFrameH = 200;
+        const orientation = (pdfType === 'pdf4' && pdf4PageOrientation === 'portrait') ? 'portrait' : 'landscape';
+
         const canvas = await safeHtml2Canvas(element, { 
           scale: 2.5, 
           useCORS: true, 
           logging: false,
-          windowWidth: 1200
+          windowWidth: isPdf4_180x200 ? 900 : 1200
         });
         const pdf = new jsPDF({
-          orientation: 'landscape',
+          orientation,
           unit: 'mm',
           format: 'a4'
         });
         
-        renderCanvasToPdfFrame(pdf, canvas);
+        renderCanvasToPdfFrame(pdf, canvas, targetFrameW, targetFrameH);
 
         const pdfBlob = pdf.output('blob');
         const blobUrl = URL.createObjectURL(pdfBlob);
@@ -653,25 +675,30 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
           
           const element = document.getElementById(`printable-pdf-container-${tab}`);
           if (element) {
+            const isPdf4_180x200 = tab === 'pdf4' && pdf4FrameSize === '180x200';
+            const targetFrameW = isPdf4_180x200 ? 180 : 270;
+            const targetFrameH = 200;
+            const orientation = (tab === 'pdf4' && pdf4PageOrientation === 'portrait') ? 'portrait' : 'landscape';
+
             const canvas = await safeHtml2Canvas(element, { 
               scale: 2.5, 
               useCORS: true, 
               logging: false,
-              windowWidth: 1200
+              windowWidth: isPdf4_180x200 ? 900 : 1200
             });
             const pdf = new jsPDF({
-              orientation: 'landscape',
+              orientation,
               unit: 'mm',
               format: 'a4'
             });
 
-            renderCanvasToPdfFrame(pdf, canvas);
+            renderCanvasToPdfFrame(pdf, canvas, targetFrameW, targetFrameH);
             
             const fileNames = {
               pdf1: `PDF1_SoDoTongQuanKho_${pdfData.pdf1.warehouseCode}.pdf`,
               pdf2: `PDF2_ChiTietVatTuKe_${pdfData.pdf2.rackId}.pdf`,
               pdf3: `PDF3_HuongDanDocDiaChiKe5S.pdf`,
-              pdf4: `PDF4_SoDo3DChiTietKe_${pdfData.pdf4.rackId}.pdf`,
+              pdf4: `PDF4_SoDo3DChiTietKe_${pdfData.pdf4.rackId}_${targetFrameW}x${targetFrameH}mm.pdf`,
               pdf5: `PDF5_MaQRViTriTangCao_Ke_${activeRackId}.pdf`
             };
             triggerBlobDownload(pdf, fileNames[tab]);
@@ -682,25 +709,30 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
         await new Promise(r => setTimeout(r, 300));
         const element = document.getElementById(`printable-pdf-container-${pdfType}`);
         if (element) {
+          const isPdf4_180x200 = pdfType === 'pdf4' && pdf4FrameSize === '180x200';
+          const targetFrameW = isPdf4_180x200 ? 180 : 270;
+          const targetFrameH = 200;
+          const orientation = (pdfType === 'pdf4' && pdf4PageOrientation === 'portrait') ? 'portrait' : 'landscape';
+
           const canvas = await safeHtml2Canvas(element, { 
             scale: 2.5, 
             useCORS: true, 
             logging: false,
-            windowWidth: 1200
+            windowWidth: isPdf4_180x200 ? 900 : 1200
           });
           const pdf = new jsPDF({
-            orientation: 'landscape',
+            orientation,
             unit: 'mm',
             format: 'a4'
           });
 
-          renderCanvasToPdfFrame(pdf, canvas);
+          renderCanvasToPdfFrame(pdf, canvas, targetFrameW, targetFrameH);
 
           const fileNames = {
             pdf1: `PDF1_SoDoTongQuanKho_${pdfData.pdf1.warehouseCode}.pdf`,
             pdf2: `PDF2_ChiTietVatTuKe_${pdfData.pdf2.rackId}.pdf`,
             pdf3: `PDF3_HuongDanDocDiaChiKe5S.pdf`,
-            pdf4: `PDF4_SoDo3DChiTietKe_${pdfData.pdf4.rackId}.pdf`,
+            pdf4: `PDF4_SoDo3DChiTietKe_${pdfData.pdf4.rackId}_${targetFrameW}x${targetFrameH}mm.pdf`,
             pdf5: `PDF5_MaQRViTriTangCao_Ke_${activeRackId}.pdf`
           };
           triggerBlobDownload(pdf, fileNames[pdfType]);
@@ -1728,65 +1760,137 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
           {/* PDF 4: CHI TIẾT TRONG 1 KỆ SƠ ĐỒ (MÔ PHỎNG 3D) - CHỈ HIỂN THỊ SƠ ĐỒ 3D */}
           {/* ========================================================================= */}
           {activePdfTab === 'pdf4' && (
-            <div 
-              id="printable-pdf-container-pdf4"
-              className="bg-white w-full max-w-[1100px] p-1 rounded-lg flex flex-col items-center justify-center text-slate-900 relative shadow-xl"
-            >
-              {pdfData.pdf4.customImage ? (
-                <img 
-                  src={pdfData.pdf4.customImage} 
-                  alt="Sơ đồ 3D Kệ đã tải lên" 
-                  className="w-full h-auto max-h-[800px] object-contain"
-                />
-              ) : (
-                <div className="w-full flex items-center justify-center">
-                  <IsometricRackSVG
-                    rackId={activeRackId}
-                    rackDisplayName={activeRackDisplayName}
-                    onDoubleClickRackName={() => {
-                      const newName = window.prompt('Nhập tên Kệ hiển thị trên bản in PDF:', activeRackDisplayName);
-                      if (newName && newName.trim()) {
-                        const trimmed = newName.trim();
-                        setPdfData(prev => ({
-                          ...prev,
-                          pdf3: { ...prev.pdf3, rackLetter: trimmed },
-                          pdf4: {
-                            ...prev.pdf4,
-                            title: `MÔ PHỎNG PHỐI CẢNH 3D ${trimmed.toUpperCase()} — CAD ISOMETRIC`,
-                            floorNotice: `⚠️ MẶT ĐẤT (TẦNG 1) — VẠCH SƠN AN TOÀN 5S KHO BÌNH DƯƠNG (${trimmed})`,
-                          }
-                        }));
-                      }
-                    }}
-                    storageType={pdf4Config?.storageType || 'pallets'}
-                    tierCount={pdf4Config?.tierCount || 3}
-                    itemsPerBay={pdf4Config?.itemsPerBay || 2}
-                    tierColors={pdf4Config?.tierColors || { 3: '#f59e0b', 2: '#3b82f6', 1: '#dc2626' }}
-                    bayNumbers={pdf4Config?.bayNumbers || ['01', '02', '03', '04', '05']}
-                    selectedBay={undefined}
-                    selectedTier={undefined}
-                    selectedSlot={undefined}
-                    onSelectSlot={() => {}}
-                    getSlotLabel={(bay, tier, slot) => {
-                      const key = `${activeRackId}-${bay}-${tier}-${slot}`;
-                      if (pdf4Config?.customSlotLabels && pdf4Config.customSlotLabels[key]) {
-                        return pdf4Config.customSlotLabels[key];
-                      }
-                      const bList = pdf4Config?.bayNumbers || ['01', '02', '03', '04', '05'];
-                      const itPerBay = pdf4Config?.itemsPerBay || 2;
-                      const tCount = pdf4Config?.tierCount || 3;
-                      const bIdx = Math.max(0, bList.indexOf(bay));
-                      const seq = bIdx * (tCount * itPerBay) + (tier - 1) * itPerBay + slot;
-                      return `C${seq < 10 ? '0' + seq : seq}`;
-                    }}
-                    getSlotItem={(bay, tier, slot) => {
-                      const loc = `${activeRackId}-${bay}-${tier}-${slot}`;
-                      return items.find(i => i.location === loc || (i.rackId === activeRackId && i.bayId === bay && i.tier === tier && (i.slot === slot || (!i.slot && slot === 1))));
-                    }}
-                    tagFontSize={pdf4Config?.tagFontSize || 14}
-                  />
+            <div className="w-full flex flex-col items-center gap-3">
+              {/* PDF 4 Frame Setting Controls Bar */}
+              <div className="w-full max-w-[1100px] bg-slate-900 text-white px-4 py-2.5 rounded-xl border border-slate-700 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
+                    <span>📐 KHUNG XUẤT PDF:</span>
+                  </span>
+                  <div className="flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setPdf4FrameSize('180x200')}
+                      className={`px-3 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                        pdf4FrameSize === '180x200'
+                          ? 'bg-amber-500 text-slate-950 shadow-xs ring-1 ring-white/50'
+                          : 'text-slate-300 hover:bg-slate-700'
+                      }`}
+                      title="Khung kích thước 180mm ngang x 200mm dọc (Tối ưu chuẩn cho Kệ 4T-3K-3VT)"
+                    >
+                      180mm × 200mm (Chuẩn 4T-3K-3VT)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPdf4FrameSize('270x200')}
+                      className={`px-3 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                        pdf4FrameSize === '270x200'
+                          ? 'bg-amber-500 text-slate-950 shadow-xs ring-1 ring-white/50'
+                          : 'text-slate-300 hover:bg-slate-700'
+                      }`}
+                      title="Khung kích thước 270mm ngang x 200mm dọc (Toàn cảnh A4)"
+                    >
+                      270mm × 200mm (Toàn Cảnh A4)
+                    </button>
+                  </div>
                 </div>
-              )}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-slate-400 font-medium">Khổ giấy:</span>
+                  <div className="flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setPdf4PageOrientation('landscape')}
+                      className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                        pdf4PageOrientation === 'landscape'
+                          ? 'bg-teal-600 text-white shadow-xs'
+                          : 'text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      A4 Ngang
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPdf4PageOrientation('portrait')}
+                      className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                        pdf4PageOrientation === 'portrait'
+                          ? 'bg-teal-600 text-white shadow-xs'
+                          : 'text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      A4 Dọc
+                    </button>
+                  </div>
+
+                  <span className="ml-2 bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[11px] font-mono font-bold">
+                    Khung in: {pdf4FrameSize === '180x200' ? '180 × 200 mm' : '270 × 200 mm'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Printable PDF container */}
+              <div 
+                id="printable-pdf-container-pdf4"
+                className={`bg-white w-full ${
+                  pdf4FrameSize === '180x200' ? 'max-w-[780px]' : 'max-w-[1100px]'
+                } p-1 rounded-lg flex flex-col items-center justify-center text-slate-900 relative shadow-xl border-2 border-slate-900 transition-all`}
+              >
+                {pdfData.pdf4.customImage ? (
+                  <img 
+                    src={pdfData.pdf4.customImage} 
+                    alt="Sơ đồ 3D Kệ đã tải lên" 
+                    className="w-full h-auto max-h-[800px] object-contain"
+                  />
+                ) : (
+                  <div className="w-full flex items-center justify-center">
+                    <IsometricRackSVG
+                      rackId={activeRackId}
+                      rackDisplayName={activeRackDisplayName}
+                      onDoubleClickRackName={() => {
+                        const newName = window.prompt('Nhập tên Kệ hiển thị trên bản in PDF:', activeRackDisplayName);
+                        if (newName && newName.trim()) {
+                          const trimmed = newName.trim();
+                          setPdfData(prev => ({
+                            ...prev,
+                            pdf3: { ...prev.pdf3, rackLetter: trimmed },
+                            pdf4: {
+                              ...prev.pdf4,
+                              title: `MÔ PHỎNG PHỐI CẢNH 3D ${trimmed.toUpperCase()} — CAD ISOMETRIC`,
+                              floorNotice: `⚠️ MẶT ĐẤT (TẦNG 1) — VẠCH SƠN AN TOÀN 5S KHO BÌNH DƯƠNG (${trimmed})`,
+                            }
+                          }));
+                        }
+                      }}
+                      storageType={pdf4Config?.storageType || 'pallets'}
+                      tierCount={pdf4Config?.tierCount || 3}
+                      itemsPerBay={pdf4Config?.itemsPerBay || 2}
+                      tierColors={pdf4Config?.tierColors || { 3: '#f59e0b', 2: '#3b82f6', 1: '#dc2626' }}
+                      bayNumbers={pdf4Config?.bayNumbers || ['01', '02', '03', '04', '05']}
+                      selectedBay={undefined}
+                      selectedTier={undefined}
+                      selectedSlot={undefined}
+                      onSelectSlot={() => {}}
+                      getSlotLabel={(bay, tier, slot) => {
+                        const key = `${activeRackId}-${bay}-${tier}-${slot}`;
+                        if (pdf4Config?.customSlotLabels && pdf4Config.customSlotLabels[key]) {
+                          return pdf4Config.customSlotLabels[key];
+                        }
+                        const bList = pdf4Config?.bayNumbers || ['01', '02', '03', '04', '05'];
+                        const itPerBay = pdf4Config?.itemsPerBay || 2;
+                        const tCount = pdf4Config?.tierCount || 3;
+                        const bIdx = Math.max(0, bList.indexOf(bay));
+                        const seq = bIdx * (tCount * itPerBay) + (tier - 1) * itPerBay + slot;
+                        return `C${seq < 10 ? '0' + seq : seq}`;
+                      }}
+                      getSlotItem={(bay, tier, slot) => {
+                        const loc = `${activeRackId}-${bay}-${tier}-${slot}`;
+                        return items.find(i => i.location === loc || (i.rackId === activeRackId && i.bayId === bay && i.tier === tier && (i.slot === slot || (!i.slot && slot === 1))));
+                      }}
+                      tagFontSize={pdf4Config?.tagFontSize || 14}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
