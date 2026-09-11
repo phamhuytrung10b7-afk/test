@@ -1730,13 +1730,13 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
           {activePdfTab === 'pdf4' && (
             <div 
               id="printable-pdf-container-pdf4"
-              className="bg-white w-full max-w-[1100px] p-4 sm:p-6 rounded-2xl flex flex-col items-center justify-center text-slate-900 relative shadow-xl"
+              className="bg-white w-full max-w-[1100px] p-1 rounded-lg flex flex-col items-center justify-center text-slate-900 relative shadow-xl"
             >
               {pdfData.pdf4.customImage ? (
                 <img 
                   src={pdfData.pdf4.customImage} 
                   alt="Sơ đồ 3D Kệ đã tải lên" 
-                  className="w-full h-auto max-h-[580px] object-contain"
+                  className="w-full h-auto max-h-[800px] object-contain"
                 />
               ) : (
                 <div className="w-full flex items-center justify-center">
