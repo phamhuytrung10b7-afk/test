@@ -400,7 +400,7 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
       <g id="steel-rack-structure">
         {/* Rear posts */}
         {postPositions.map((postX, i) => (
-          <rect key={`rear-post-${i}`} x={postX - 10} y={is4Tier ? "82" : "90"} width="12" height={is4Tier ? "628" : "520"} fill="#1e293b" opacity="0.6" />
+          <rect key={`rear-post-${i}`} x={postX - 10} y={is4Tier ? "82" : "90"} width="12" height={is4Tier ? "646" : "520"} fill="#1e293b" opacity="0.6" />
         ))}
 
         {/* Rear cross bracing */}
@@ -433,18 +433,22 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
         {/* Front upright posts */}
         {postPositions.map((postX, i) => (
           <g key={`front-post-${i}`}>
-            <polygon points={`${postX},${is4Tier ? 88 : 98} ${postX - 10},${is4Tier ? 78 : 88} ${postX - 10},${is4Tier ? 704 : 600} ${postX},${is4Tier ? 714 : 610}`} fill="#1e293b" />
-            <rect x={postX} y={is4Tier ? "88" : "98"} width="16" height={is4Tier ? "626" : "512"} fill={safeStorageType === 'bins' ? '#334155' : '#2563eb'} stroke="#1d4ed8" strokeWidth="1.2" filter="url(#cadShadow)" />
-            {[...Array(is4Tier ? 32 : 28)].map((_, j) => (
+            <polygon points={`${postX},${is4Tier ? 88 : 98} ${postX - 10},${is4Tier ? 78 : 88} ${postX - 10},${is4Tier ? 726 : 600} ${postX},${is4Tier ? 736 : 610}`} fill="#1e293b" />
+            <rect x={postX} y={is4Tier ? "88" : "98"} width="16" height={is4Tier ? "648" : "512"} fill={safeStorageType === 'bins' ? '#334155' : '#2563eb'} stroke="#1d4ed8" strokeWidth="1.2" filter="url(#cadShadow)" />
+            {[...Array(is4Tier ? 33 : 28)].map((_, j) => (
               <circle key={`hole-${j}`} cx={postX + 8} cy={(is4Tier ? 98 : 108) + j * (is4Tier ? 19 : 18)} r="2" fill="#0f172a" />
             ))}
+            {/* Base Footplate anchor */}
+            {is4Tier && (
+              <polygon points={`${postX - 12},736 ${postX + 22},736 ${postX + 18},742 ${postX - 16},742`} fill="#0f172a" stroke="#334155" strokeWidth="1" />
+            )}
           </g>
         ))}
 
-        {/* Front Load Beams (Orange Heavy Duty Beams) - Skip Tier 1 (ground level) */}
+        {/* Front Load Beams (Orange Heavy Duty Beams) - For 4-tier rack, Tier 1 also has an orange beam */}
         {Object.entries(beamYLevels).map(([tierStr, beamY], i) => {
           const tier = Number(tierStr);
-          if (tier === 1) return null; // Ground level has no raised beam
+          if (tier === 1 && !is4Tier) return null; // 3-tier models sit directly on ground, 4-tier has raised beam on tier 1
           return (
             <g key={`beam-level-${i}`}>
               <polygon points={`${startX - 1},${beamY} ${startX - 11},${beamY - 10} ${startX + totalRackWidth - 1},${beamY - 10} ${startX + totalRackWidth + 9},${beamY}`} fill={safeStorageType === 'bins' ? '#334155' : '#c2410c'} />
