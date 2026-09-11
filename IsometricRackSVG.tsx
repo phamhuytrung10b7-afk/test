@@ -69,7 +69,7 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
   const activeTierColors = tierColors || defaultColors;
 
   const displayTitle = rackDisplayName || (rackId.toUpperCase().startsWith('KỆ') || rackId.toUpperCase().startsWith('DÃY') ? rackId : `KỆ ${rackId}`);
-  const titleBadgeWidth = Math.min(380, Math.max(90, displayTitle.length * 9.5 + 24));
+  const titleBadgeWidth = Math.min(420, Math.max(120, displayTitle.length * 13 + 36));
 
   // Layout math calculations
   const numBays = safeBayNumbers.length;
@@ -158,7 +158,7 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
       {/* 2. FLOATING RACK CALLOUT BADGE - TOP-LEFT CORNER */}
       <g 
         id="floating-rack-badge" 
-        transform="translate(-25, -35)"
+        transform="translate(-25, -42)"
         className="cursor-pointer group/racktitle transition-all"
         onDoubleClick={(e) => {
           e.stopPropagation();
@@ -170,25 +170,26 @@ export const IsometricRackSVG: React.FC<IsometricRackSVGProps> = ({
           x="0" 
           y="0" 
           width={titleBadgeWidth} 
-          height="32" 
-          rx="9" 
+          height="40" 
+          rx="10" 
           fill="#ea580c" 
           stroke="#ffffff" 
-          strokeWidth="2" 
+          strokeWidth="2.5" 
           filter="url(#cadShadow)" 
           className="group-hover/racktitle:fill-orange-600 transition-colors"
         />
         <text 
           x={titleBadgeWidth / 2} 
-          y="21" 
+          y="26" 
           fill="#ffffff" 
-          fontSize="12.5" 
+          fontSize="18" 
           fontWeight="900" 
           textAnchor="middle"
+          letterSpacing="0.5"
         >
           {displayTitle}
         </text>
-        <circle cx={titleBadgeWidth - 8} cy="8" r="2.5" fill="#ffffff" opacity="0.6" className="group-hover/racktitle:opacity-100" />
+        <circle cx={titleBadgeWidth - 10} cy="10" r="3" fill="#ffffff" opacity="0.6" className="group-hover/racktitle:opacity-100" />
       </g>
 
       {/* 3. TOP BAY HEADERS (KHOANG 01 .. KHOANG 0N) */}

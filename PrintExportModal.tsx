@@ -230,6 +230,26 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
     }
   }, [pdfData]);
 
+  // Sync pdfData with activeRackId when changed or opened
+  useEffect(() => {
+    if (!isOpen) return;
+    setPdfData(prev => {
+      const rackName = activeRackId.toUpperCase().startsWith('KỆ') || activeRackId.toUpperCase().startsWith('DÃY') ? activeRackId : `KỆ ${activeRackId}`;
+      if (prev.pdf4.rackId !== activeRackId) {
+        return {
+          ...prev,
+          pdf4: {
+            ...prev.pdf4,
+            title: `MÔ PHỎNG PHỐI CẢNH 3D ${rackName.toUpperCase()} — CAD ISOMETRIC`,
+            rackId: activeRackId,
+            floorNotice: `⚠️ MẶT ĐẤT (TẦNG 1) — VẠCH SƠN AN TOÀN 5S KHO BÌNH DƯƠNG (${rackName})`,
+          }
+        };
+      }
+      return prev;
+    });
+  }, [isOpen, activeRackId]);
+
   // State & QR generation for Tab 5 (High-Tier QR Labels)
   const tab5TierCount = pdf4Config?.tierCount || 3;
   const tab5BayNumbers = pdf4Config?.bayNumbers || ['01', '02', '03', '04', '05'];
@@ -1714,7 +1734,8 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
               ) : (
                 <div className="w-full flex items-center justify-center">
                   <IsometricRackSVG
-                    rackId={selectedRackId || 'A'}
+                    rackId={activeRackId}
+                    rackDisplayName={pdf4Config?.rackDisplayName || (activeRackId.toUpperCase().startsWith('KỆ') || activeRackId.toUpperCase().startsWith('DÃY') ? activeRackId : `KỆ ${activeRackId}`)}
                     storageType={pdf4Config?.storageType || 'pallets'}
                     tierCount={pdf4Config?.tierCount || 3}
                     itemsPerBay={pdf4Config?.itemsPerBay || 2}
@@ -1725,7 +1746,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                     selectedSlot={undefined}
                     onSelectSlot={() => {}}
                     getSlotLabel={(bay, tier, slot) => {
-                      const key = `${selectedRackId || 'A'}-${bay}-${tier}-${slot}`;
+                      const key = `${activeRackId}-${bay}-${tier}-${slot}`;
                       if (pdf4Config?.customSlotLabels && pdf4Config.customSlotLabels[key]) {
                         return pdf4Config.customSlotLabels[key];
                       }
@@ -1737,8 +1758,8 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                       return `C${seq < 10 ? '0' + seq : seq}`;
                     }}
                     getSlotItem={(bay, tier, slot) => {
-                      const loc = `${selectedRackId || 'A'}-${bay}-${tier}-${slot}`;
-                      return items.find(i => i.location === loc || (i.rackId === (selectedRackId || 'A') && i.bayId === bay && i.tier === tier && (i.slot === slot || (!i.slot && slot === 1))));
+                      const loc = `${activeRackId}-${bay}-${tier}-${slot}`;
+                      return items.find(i => i.location === loc || (i.rackId === activeRackId && i.bayId === bay && i.tier === tier && (i.slot === slot || (!i.slot && slot === 1))));
                     }}
                     tagFontSize={pdf4Config?.tagFontSize || 14}
                   />
