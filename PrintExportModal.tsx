@@ -92,6 +92,8 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
   const activeRackId = selectedRackId || currentPosition.rackId || 'C';
+  const currentRack = racks.find(r => r.id === activeRackId || r.name === activeRackId);
+  const activeRackDisplayName = pdf4Config?.rackDisplayName || currentRack?.name || (activeRackId.toUpperCase().startsWith('KỆ') || activeRackId.toUpperCase().startsWith('DÃY') ? activeRackId : `KỆ ${activeRackId}`);
 
   // Default PDF Custom Data
   const getDefaultPdfData = (): PdfCustomData => {
@@ -158,9 +160,9 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
         customImage: null,
       },
       pdf2: {
-        title: `CHI TIẾT RACK: KỆ ${activeRackId} (DÃY ${activeRackId})`,
+        title: `CHI TIẾT RACK: ${activeRackDisplayName.toUpperCase()}`,
         subtitle: 'MA TRẬN PHÂN BỔ KHOANG & TẦNG (5 KHOANG x 3 TẦNG x 2 VỊ TRÍ = 30 Ô KỆ)',
-        rackId: activeRackId,
+        rackId: activeRackDisplayName,
         companyLogoText: boardConfig.companyLogoText || 'SUNHOUSE',
         bayNames: ['KHOANG 01', 'KHOANG 02', 'KHOANG 03', 'KHOANG 04', 'KHOANG 05'],
         matrixSlots: initialMatrixSlots,
@@ -171,14 +173,14 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
         subtitle: 'NHÀ MÁY SUNHOUSE BÌNH DƯƠNG • QUY CHUẨN BẢNG NHẬN DIỆN THỊ GIÁC (VISUAL MANAGEMENT)',
         companyLogoText: boardConfig.companyLogoText || 'SUNHOUSE',
         customImage: null,
-        rackLetter: activeRackId,
+        rackLetter: activeRackDisplayName,
         bayNum: '02',
         tierNum: '3',
         posNum: '2',
         colorHex: '#047857',
       },
       pdf4: {
-        title: `MÔ PHỎNG PHỐI CẢNH 3D KỆ ${activeRackId} — CAD ISOMETRIC`,
+        title: `MÔ PHỎNG PHỐI CẢNH 3D ${activeRackDisplayName.toUpperCase()} — CAD ISOMETRIC`,
         subtitle: 'SƠ ĐỒ PHỐI CẢNH 3D CHI TIẾT KỆ HÀNG (5 KHOANG x 3 TẦNG x 2 VỊ TRÍ = 30 VỊ TRÍ)',
         rackId: activeRackId,
         companyLogoText: boardConfig.companyLogoText || 'SUNHOUSE',
@@ -187,7 +189,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
         tier3Label: 'TẦNG 3 (Mức A - Cao)',
         tier2Label: 'TẦNG 2 (Mức B - Giữa)',
         tier1Label: 'TẦNG 1 (MẶT ĐẤT)',
-        floorNotice: `⚠️ MẶT ĐẤT (TẦNG 1) — VẠCH SƠN AN TOÀN 5S KHO BÌNH DƯƠNG (KỆ ${activeRackId})`,
+        floorNotice: `⚠️ MẶT ĐẤT (TẦNG 1) — VẠCH SƠN AN TOÀN 5S KHO BÌNH DƯƠNG (${activeRackDisplayName})`,
         matrixSlots: initialPdf4Slots,
       },
     };
@@ -230,25 +232,30 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
     }
   }, [pdfData]);
 
-  // Sync pdfData with activeRackId when changed or opened
+  // Sync pdfData with activeRackId & activeRackDisplayName when changed or opened
   useEffect(() => {
     if (!isOpen) return;
     setPdfData(prev => {
-      const rackName = activeRackId.toUpperCase().startsWith('KỆ') || activeRackId.toUpperCase().startsWith('DÃY') ? activeRackId : `KỆ ${activeRackId}`;
-      if (prev.pdf4.rackId !== activeRackId) {
-        return {
-          ...prev,
-          pdf4: {
-            ...prev.pdf4,
-            title: `MÔ PHỎNG PHỐI CẢNH 3D ${rackName.toUpperCase()} — CAD ISOMETRIC`,
-            rackId: activeRackId,
-            floorNotice: `⚠️ MẶT ĐẤT (TẦNG 1) — VẠCH SƠN AN TOÀN 5S KHO BÌNH DƯƠNG (${rackName})`,
-          }
-        };
-      }
-      return prev;
+      const rackName = activeRackDisplayName;
+      return {
+        ...prev,
+        pdf2: {
+          ...prev.pdf2,
+          rackId: rackName,
+        },
+        pdf3: {
+          ...prev.pdf3,
+          rackLetter: rackName,
+        },
+        pdf4: {
+          ...prev.pdf4,
+          title: `MÔ PHỎNG PHỐI CẢNH 3D ${rackName.toUpperCase()} — CAD ISOMETRIC`,
+          rackId: activeRackId,
+          floorNotice: `⚠️ MẶT ĐẤT (TẦNG 1) — VẠCH SƠN AN TOÀN 5S KHO BÌNH DƯƠNG (${rackName})`,
+        }
+      };
     });
-  }, [isOpen, activeRackId]);
+  }, [isOpen, activeRackId, activeRackDisplayName]);
 
   // State & QR generation for Tab 5 (High-Tier QR Labels)
   const tab5TierCount = pdf4Config?.tierCount || 3;
@@ -1735,7 +1742,22 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                 <div className="w-full flex items-center justify-center">
                   <IsometricRackSVG
                     rackId={activeRackId}
-                    rackDisplayName={pdf4Config?.rackDisplayName || (activeRackId.toUpperCase().startsWith('KỆ') || activeRackId.toUpperCase().startsWith('DÃY') ? activeRackId : `KỆ ${activeRackId}`)}
+                    rackDisplayName={activeRackDisplayName}
+                    onDoubleClickRackName={() => {
+                      const newName = window.prompt('Nhập tên Kệ hiển thị trên bản in PDF:', activeRackDisplayName);
+                      if (newName && newName.trim()) {
+                        const trimmed = newName.trim();
+                        setPdfData(prev => ({
+                          ...prev,
+                          pdf3: { ...prev.pdf3, rackLetter: trimmed },
+                          pdf4: {
+                            ...prev.pdf4,
+                            title: `MÔ PHỎNG PHỐI CẢNH 3D ${trimmed.toUpperCase()} — CAD ISOMETRIC`,
+                            floorNotice: `⚠️ MẶT ĐẤT (TẦNG 1) — VẠCH SƠN AN TOÀN 5S KHO BÌNH DƯƠNG (${trimmed})`,
+                          }
+                        }));
+                      }
+                    }}
                     storageType={pdf4Config?.storageType || 'pallets'}
                     tierCount={pdf4Config?.tierCount || 3}
                     itemsPerBay={pdf4Config?.itemsPerBay || 2}
@@ -1868,7 +1890,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                     <SunhouseLogo className="h-9 w-auto" />
                     <div>
                       <h2 className="text-base sm:text-lg font-black text-slate-950 tracking-tight uppercase">
-                        BẢNG MÃ QR CODE TẤT CẢ VỊ TRÍ KỆ • KỆ {activeRackId}
+                        BẢNG MÃ QR CODE TẤT CẢ VỊ TRÍ KỆ • {activeRackDisplayName}
                       </h2>
                       <p className="text-xs font-semibold text-slate-500">
                         NHÀ MÁY SUNHOUSE BÌNH DƯƠNG • MÃ QR QUÉT TẤT CẢ VỊ TRÍ KỆ (BIN LOCATION)
@@ -1903,7 +1925,7 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
                           <SunhouseLogo className={tab5Layout === '20_per_page' ? 'h-3.5 w-auto' : tab5Layout === '10_per_page' ? 'h-4 w-auto' : 'h-5 w-auto'} />
                         </div>
                         <div className="bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded text-[9.5px] border border-slate-950">
-                          KỆ {activeRackId} • KHOANG {card.bay} • TẦNG {card.tier}
+                          {activeRackDisplayName} • KHOANG {card.bay} • TẦNG {card.tier}
                         </div>
                       </div>
 
