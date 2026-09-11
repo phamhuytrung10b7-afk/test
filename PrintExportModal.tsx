@@ -92,14 +92,13 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
   const is4TierRack = pdf4Config?.tierCount === 4 || (pdf4Config?.bayNumbers && pdf4Config.bayNumbers.length <= 3);
-  const [pdf4FrameSize, setPdf4FrameSize] = useState<'180x200' | '270x200'>(
-    is4TierRack ? '180x200' : '270x200'
+  const [pdf4ExportMode, setPdf4ExportMode] = useState<'exact_180x200' | 'a4_portrait_180x200' | 'a4_landscape_270x200'>(
+    is4TierRack ? 'exact_180x200' : 'a4_landscape_270x200'
   );
-  const [pdf4PageOrientation, setPdf4PageOrientation] = useState<'landscape' | 'portrait'>('landscape');
 
   useEffect(() => {
     if (pdf4Config?.tierCount === 4 || (pdf4Config?.bayNumbers && pdf4Config.bayNumbers.length <= 3)) {
-      setPdf4FrameSize('180x200');
+      setPdf4ExportMode('exact_180x200');
     }
   }, [pdf4Config]);
 
@@ -560,50 +559,81 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
     }
   };
 
-  // Helper to render image onto A4 PDF within a centered custom frame (e.g. 180x200mm or 270x200mm) with a black cut border
+  // Helper to render image onto PDF within exact dimensions (180x200mm) or centered on A4
   const renderCanvasToPdfFrame = (
     pdf: jsPDF, 
     canvas: HTMLCanvasElement, 
-    customFrameW?: number, 
-    customFrameH?: number
+    mode: 'exact_180x200' | 'a4_portrait_180x200' | 'a4_landscape_270x200' | 'default' = 'default'
   ) => {
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgData = canvas.toDataURL('image/png');
 
-    // User requested frame dimension: 180mm width x 200mm height for 4T-3K-3VT, or 270x200mm for standard wide racks
-    const frameW = customFrameW || 270;
-    const frameH = customFrameH || 200;
+    if (mode === 'exact_180x200') {
+      // 100% full-bleed onto exact 180mm x 200mm PDF page with crisp 1px cut line
+      pdf.addImage(imgData, 'PNG', 0, 0, 180, 200, undefined, 'FAST');
+      pdf.setDrawColor(15, 23, 42);
+      pdf.setLineWidth(0.4);
+      pdf.rect(0, 0, 180, 200);
+      return;
+    }
 
-    // Center frame on A4 page
+    if (mode === 'a4_portrait_180x200') {
+      // Centered 180mm x 200mm frame on A4 Portrait (210 x 297mm)
+      const frameW = 180;
+      const frameH = 200;
+      const frameX = Math.max(0, (pdfWidth - frameW) / 2);
+      const frameY = Math.max(0, (pdfHeight - frameH) / 2);
+
+      pdf.addImage(imgData, 'PNG', frameX, frameY, frameW, frameH, undefined, 'FAST');
+      pdf.setDrawColor(15, 23, 42);
+      pdf.setLineWidth(0.6);
+      pdf.rect(frameX, frameY, frameW, frameH);
+      return;
+    }
+
+    // Default or A4 Landscape: 270mm x 200mm frame centered on A4 Landscape (297 x 210mm)
+    const frameW = 270;
+    const frameH = 200;
     const frameX = Math.max(0, (pdfWidth - frameW) / 2);
     const frameY = Math.max(0, (pdfHeight - frameH) / 2);
 
-    // Draw crisp black cut border
-    pdf.setDrawColor(0, 0, 0);
+    pdf.addImage(imgData, 'PNG', frameX, frameY, frameW, frameH, undefined, 'FAST');
+    pdf.setDrawColor(15, 23, 42);
     pdf.setLineWidth(0.6);
     pdf.rect(frameX, frameY, frameW, frameH);
+  };
 
-    // Fit content inside frame with 1.5mm inner margin
-    const innerMargin = 1.5;
-    const maxW = frameW - innerMargin * 2;
-    const maxH = frameH - innerMargin * 2;
-
-    const imgData = canvas.toDataURL('image/png');
-    const canvasRatio = canvas.width / canvas.height;
-
-    let renderW = maxW;
-    let renderH = renderW / canvasRatio;
-
-    if (renderH > maxH) {
-      renderH = maxH;
-      renderW = renderH * canvasRatio;
+  // Helper to create correct jsPDF instance for a given tab
+  const createPdfInstance = (tab: 'pdf1' | 'pdf2' | 'pdf3' | 'pdf4' | 'pdf5') => {
+    if (tab === 'pdf4') {
+      if (pdf4ExportMode === 'exact_180x200') {
+        return new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: [180, 200]
+        });
+      }
+      if (pdf4ExportMode === 'a4_portrait_180x200') {
+        return new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+      }
+      return new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
     }
 
-    // Center image inside the specified frame
-    const imgX = frameX + (frameW - renderW) / 2;
-    const imgY = frameY + (frameH - renderH) / 2;
-
-    pdf.addImage(imgData, 'PNG', imgX, imgY, renderW, renderH, undefined, 'FAST');
+    // For other tabs (PDF1, PDF2, PDF3, PDF5): Standard A4 Landscape
+    return new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4'
+    });
   };
 
   // Open PDF directly in a new browser tab (bypasses iframe download restrictions)
@@ -616,24 +646,18 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
       await new Promise(r => setTimeout(r, 200));
       const element = document.getElementById(`printable-pdf-container-${pdfType}`);
       if (element) {
-        const isPdf4_180x200 = pdfType === 'pdf4' && pdf4FrameSize === '180x200';
-        const targetFrameW = isPdf4_180x200 ? 180 : 270;
-        const targetFrameH = 200;
-        const orientation = (pdfType === 'pdf4' && pdf4PageOrientation === 'portrait') ? 'portrait' : 'landscape';
-
+        const isPdf4Exact = pdfType === 'pdf4' && pdf4ExportMode === 'exact_180x200';
+        const isPdf4Portrait = pdfType === 'pdf4' && pdf4ExportMode === 'a4_portrait_180x200';
+        
         const canvas = await safeHtml2Canvas(element, { 
           scale: 2.5, 
           useCORS: true, 
           logging: false,
-          windowWidth: isPdf4_180x200 ? 900 : 1200
+          windowWidth: (isPdf4Exact || isPdf4Portrait) ? 800 : 1200
         });
-        const pdf = new jsPDF({
-          orientation,
-          unit: 'mm',
-          format: 'a4'
-        });
-        
-        renderCanvasToPdfFrame(pdf, canvas, targetFrameW, targetFrameH);
+
+        const pdf = createPdfInstance(pdfType);
+        renderCanvasToPdfFrame(pdf, canvas, pdfType === 'pdf4' ? pdf4ExportMode : 'default');
 
         const pdfBlob = pdf.output('blob');
         const blobUrl = URL.createObjectURL(pdfBlob);
@@ -675,64 +699,54 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
           
           const element = document.getElementById(`printable-pdf-container-${tab}`);
           if (element) {
-            const isPdf4_180x200 = tab === 'pdf4' && pdf4FrameSize === '180x200';
-            const targetFrameW = isPdf4_180x200 ? 180 : 270;
-            const targetFrameH = 200;
-            const orientation = (tab === 'pdf4' && pdf4PageOrientation === 'portrait') ? 'portrait' : 'landscape';
+            const isPdf4Exact = tab === 'pdf4' && pdf4ExportMode === 'exact_180x200';
+            const isPdf4Portrait = tab === 'pdf4' && pdf4ExportMode === 'a4_portrait_180x200';
 
             const canvas = await safeHtml2Canvas(element, { 
               scale: 2.5, 
               useCORS: true, 
               logging: false,
-              windowWidth: isPdf4_180x200 ? 900 : 1200
-            });
-            const pdf = new jsPDF({
-              orientation,
-              unit: 'mm',
-              format: 'a4'
+              windowWidth: (isPdf4Exact || isPdf4Portrait) ? 800 : 1200
             });
 
-            renderCanvasToPdfFrame(pdf, canvas, targetFrameW, targetFrameH);
+            const pdf = createPdfInstance(tab);
+            renderCanvasToPdfFrame(pdf, canvas, tab === 'pdf4' ? pdf4ExportMode : 'default');
             
+            const pdf4Suffix = pdf4ExportMode === 'exact_180x200' ? '180x200mm' : (pdf4ExportMode === 'a4_portrait_180x200' ? 'A4Doc_180x200mm' : 'A4Ngang_270x200mm');
             const fileNames = {
               pdf1: `PDF1_SoDoTongQuanKho_${pdfData.pdf1.warehouseCode}.pdf`,
               pdf2: `PDF2_ChiTietVatTuKe_${pdfData.pdf2.rackId}.pdf`,
               pdf3: `PDF3_HuongDanDocDiaChiKe5S.pdf`,
-              pdf4: `PDF4_SoDo3DChiTietKe_${pdfData.pdf4.rackId}_${targetFrameW}x${targetFrameH}mm.pdf`,
+              pdf4: `PDF4_SoDo3DChiTietKe_${pdfData.pdf4.rackId}_${pdf4Suffix}.pdf`,
               pdf5: `PDF5_MaQRViTriTangCao_Ke_${activeRackId}.pdf`
             };
             triggerBlobDownload(pdf, fileNames[tab]);
           }
         }
       } else {
-        setExportProgressText('Đang chụp khung hình chất lượng cao A4...');
+        setExportProgressText('Đang chụp khung hình chất lượng cao...');
         await new Promise(r => setTimeout(r, 300));
         const element = document.getElementById(`printable-pdf-container-${pdfType}`);
         if (element) {
-          const isPdf4_180x200 = pdfType === 'pdf4' && pdf4FrameSize === '180x200';
-          const targetFrameW = isPdf4_180x200 ? 180 : 270;
-          const targetFrameH = 200;
-          const orientation = (pdfType === 'pdf4' && pdf4PageOrientation === 'portrait') ? 'portrait' : 'landscape';
+          const isPdf4Exact = pdfType === 'pdf4' && pdf4ExportMode === 'exact_180x200';
+          const isPdf4Portrait = pdfType === 'pdf4' && pdf4ExportMode === 'a4_portrait_180x200';
 
           const canvas = await safeHtml2Canvas(element, { 
             scale: 2.5, 
             useCORS: true, 
             logging: false,
-            windowWidth: isPdf4_180x200 ? 900 : 1200
-          });
-          const pdf = new jsPDF({
-            orientation,
-            unit: 'mm',
-            format: 'a4'
+            windowWidth: (isPdf4Exact || isPdf4Portrait) ? 800 : 1200
           });
 
-          renderCanvasToPdfFrame(pdf, canvas, targetFrameW, targetFrameH);
+          const pdf = createPdfInstance(pdfType);
+          renderCanvasToPdfFrame(pdf, canvas, pdfType === 'pdf4' ? pdf4ExportMode : 'default');
 
+          const pdf4Suffix = pdf4ExportMode === 'exact_180x200' ? '180x200mm' : (pdf4ExportMode === 'a4_portrait_180x200' ? 'A4Doc_180x200mm' : 'A4Ngang_270x200mm');
           const fileNames = {
             pdf1: `PDF1_SoDoTongQuanKho_${pdfData.pdf1.warehouseCode}.pdf`,
             pdf2: `PDF2_ChiTietVatTuKe_${pdfData.pdf2.rackId}.pdf`,
             pdf3: `PDF3_HuongDanDocDiaChiKe5S.pdf`,
-            pdf4: `PDF4_SoDo3DChiTietKe_${pdfData.pdf4.rackId}_${targetFrameW}x${targetFrameH}mm.pdf`,
+            pdf4: `PDF4_SoDo3DChiTietKe_${pdfData.pdf4.rackId}_${pdf4Suffix}.pdf`,
             pdf5: `PDF5_MaQRViTriTangCao_Ke_${activeRackId}.pdf`
           };
           triggerBlobDownload(pdf, fileNames[pdfType]);
@@ -1765,65 +1779,53 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
               <div className="w-full max-w-[1100px] bg-slate-900 text-white px-4 py-2.5 rounded-xl border border-slate-700 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-bold text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
-                    <span>📐 KHUNG XUẤT PDF:</span>
+                    <span>📐 KHỔ GIẤY & KHUNG IN:</span>
                   </span>
-                  <div className="flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700 gap-1">
+                  <div className="flex flex-wrap items-center bg-slate-800 p-1 rounded-lg border border-slate-700 gap-1">
                     <button
                       type="button"
-                      onClick={() => setPdf4FrameSize('180x200')}
-                      className={`px-3 py-1 rounded-md font-bold transition-all cursor-pointer ${
-                        pdf4FrameSize === '180x200'
-                          ? 'bg-amber-500 text-slate-950 shadow-xs ring-1 ring-white/50'
+                      onClick={() => setPdf4ExportMode('exact_180x200')}
+                      className={`px-3 py-1.5 rounded-md font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        pdf4ExportMode === 'exact_180x200'
+                          ? 'bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-300'
                           : 'text-slate-300 hover:bg-slate-700'
                       }`}
-                      title="Khung kích thước 180mm ngang x 200mm dọc (Tối ưu chuẩn cho Kệ 4T-3K-3VT)"
+                      title="Kích thước chuẩn 180mm (ngang) x 200mm (dọc) - Bóp 20mm ngang & dọc từ khổ 200x220mm, tràn viền 100%"
                     >
-                      180mm × 200mm (Chuẩn 4T-3K-3VT)
+                      <span>🎯 180mm × 200mm (Lấp Đầy 100%)</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPdf4FrameSize('270x200')}
-                      className={`px-3 py-1 rounded-md font-bold transition-all cursor-pointer ${
-                        pdf4FrameSize === '270x200'
-                          ? 'bg-amber-500 text-slate-950 shadow-xs ring-1 ring-white/50'
+                      onClick={() => setPdf4ExportMode('a4_portrait_180x200')}
+                      className={`px-3 py-1.5 rounded-md font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        pdf4ExportMode === 'a4_portrait_180x200'
+                          ? 'bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-300'
                           : 'text-slate-300 hover:bg-slate-700'
                       }`}
-                      title="Khung kích thước 270mm ngang x 200mm dọc (Toàn cảnh A4)"
+                      title="In khung 180mm x 200mm ở giữa trang giấy A4 Dọc (210x297mm) để tiện cắt viền"
                     >
-                      270mm × 200mm (Toàn Cảnh A4)
+                      <span>📄 Giấy A4 Dọc (Khung 180×200)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPdf4ExportMode('a4_landscape_270x200')}
+                      className={`px-3 py-1.5 rounded-md font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        pdf4ExportMode === 'a4_landscape_270x200'
+                          ? 'bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-300'
+                          : 'text-slate-300 hover:bg-slate-700'
+                      }`}
+                      title="In toàn cảnh 270mm x 200mm phủ kín giấy A4 Ngang"
+                    >
+                      <span>🖥️ Giấy A4 Ngang (270×200)</span>
                     </button>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-slate-400 font-medium">Khổ giấy:</span>
-                  <div className="flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700 gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setPdf4PageOrientation('landscape')}
-                      className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
-                        pdf4PageOrientation === 'landscape'
-                          ? 'bg-teal-600 text-white shadow-xs'
-                          : 'text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      A4 Ngang
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPdf4PageOrientation('portrait')}
-                      className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
-                        pdf4PageOrientation === 'portrait'
-                          ? 'bg-teal-600 text-white shadow-xs'
-                          : 'text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      A4 Dọc
-                    </button>
-                  </div>
-
-                  <span className="ml-2 bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[11px] font-mono font-bold">
-                    Khung in: {pdf4FrameSize === '180x200' ? '180 × 200 mm' : '270 × 200 mm'}
+                <div className="flex items-center gap-2">
+                  <span className="bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded text-[11px] font-mono font-bold">
+                    {pdf4ExportMode === 'exact_180x200' && '✓ Khổ 180 × 200 mm (Ngang 180mm, Dọc 200mm)'}
+                    {pdf4ExportMode === 'a4_portrait_180x200' && '✓ Trang A4 Dọc (Khung 180 × 200 mm)'}
+                    {pdf4ExportMode === 'a4_landscape_270x200' && '✓ Trang A4 Ngang (Khung 270 × 200 mm)'}
                   </span>
                 </div>
               </div>
@@ -1831,9 +1833,11 @@ export const PrintExportModal: React.FC<PrintExportModalProps> = ({
               {/* Printable PDF container */}
               <div 
                 id="printable-pdf-container-pdf4"
-                className={`bg-white w-full ${
-                  pdf4FrameSize === '180x200' ? 'max-w-[780px]' : 'max-w-[1100px]'
-                } p-1 rounded-lg flex flex-col items-center justify-center text-slate-900 relative shadow-xl border-2 border-slate-900 transition-all`}
+                style={{
+                  width: pdf4ExportMode === 'a4_landscape_270x200' ? '972px' : '720px',
+                  height: pdf4ExportMode === 'a4_landscape_270x200' ? '720px' : '800px',
+                }}
+                className="bg-white p-0 rounded-none flex flex-col items-center justify-center text-slate-900 relative shadow-2xl transition-all overflow-hidden"
               >
                 {pdfData.pdf4.customImage ? (
                   <img 
